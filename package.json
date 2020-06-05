@@ -1,11 +1,12 @@
 {
  "dependencies": {
   "bcrypt": "golang.org/x/crypto/bcrypt",
+  "client": "github.com/stfnmllr/go-resp3/client",
   "fiber": "github.com/gofiber/fiber",
   "jwt-go": "github.com/dgrijalva/jwt-go",
   "logger": "github.com/gofiber/logger",
   "mysql": "github.com/go-sql-driver/mysql",
-  "redis": "github.com/go-redis/redis",
+  "redis": "github.com/gomodule/redigo/redis",
   "squirrel": "github.com/Masterminds/squirrel",
   "v8": "github.com/go-redis/redis/v8"
  },

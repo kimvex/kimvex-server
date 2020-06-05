@@ -1,42 +1,37 @@
 package db
 
 import (
-	"context"
 	"fmt"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/gomodule/redigo/redis"
 )
 
 type RedisCon struct {
-	Connection *redis.Client
+	Connection redis.Conn
 }
 
 var connection RedisCon
 
-var ctx context.Context
+func RedisConnect() redis.Conn {
+	c, err := redis.Dial("tcp", ":6379")
+	if err != nil {
+		fmt.Println(err, "Error conection redis")
+	}
 
-func RedisConnect() *redis.Client {
-	client := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "",
-		DB:       0,
-	})
+	connection.Connection = c
 
-	connection.Connection = client
-
-	pong, err := client.Ping(ctx).Result()
-	fmt.Println(pong, err)
 	return connection.Connection
 }
 
 //GetUserID for get userid
 func GetUserID(token string) string {
-	// value, error := connection.Connection.Get(ctx, token).Result()
+	value, error := redis.String(connection.Connection.Do("get", "foo"))
+	fmt.Println("value", value)
 
-	// if error != nil {
-	// 	fmt.Println(error)
-	// 	return ""
-	// }
+	if error != nil {
+		fmt.Println(error)
+		return ""
+	}
 
-	return token
+	return value
 }

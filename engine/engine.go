@@ -1,6 +1,8 @@
 package engine
 
 import (
+	"fmt"
+
 	"github.com/gofiber/fiber"
 	"github.com/gofiber/logger"
 
@@ -15,7 +17,8 @@ func ServerExecute() {
 
 	database := db.MySQLConnect()
 	redisC := db.RedisConnect()
-	getUser := db.GetUserID("ytr")
+	getUser := db.GetUserID
+	fmt.Println(getUser, "cas")
 
 	routes.API(app, database, redisC, getUser)
 	app.Listen(3000)

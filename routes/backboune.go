@@ -2,10 +2,11 @@ package routes
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/go-redis/redis"
 	"github.com/gofiber/fiber"
+	"github.com/gomodule/redigo/redis"
 )
 
 //ErrorResponse Structure for response of type error api
@@ -21,20 +22,21 @@ type SuccessResponse struct {
 var (
 	app      *fiber.App
 	database *sql.DB
-	redisC   *redis.Client
+	redisC   redis.Conn
 	userID   string
 )
 
 //API function pricipal for backboune
-func API(App *fiber.App, Database *sql.DB, RedisCl *redis.Client, UserIDC string) {
+func API(App *fiber.App, Database *sql.DB, RedisCl redis.Conn, UserIDC func(string) string) {
 	app = App
 	database = Database
 	redisC = RedisCl
-	userID = UserIDC
 
 	app.Get("/", func(c *fiber.Ctx) {
-		var response SuccessResponse
+		userID = UserIDC(c.Get("token"))
 
+		var response SuccessResponse
+		fmt.Println(userID, "11")
 		response.MESSAGE = "Raiz del proyecto"
 		c.JSON(response)
 	})
