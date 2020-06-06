@@ -16,9 +16,10 @@ import (
 
 //Users Namespace for endpoint of users
 func Users() {
-	apiRoute.Post("/login", Login)
-	apiRoute.Get("/profile", Profile)
-	apiRoute.Post("/register", Register)
+	apiRouteUser := apiRoute.Group("/users")
+	apiRouteUser.Post("/login", Login)
+	apiRouteUser.Get("/profile", Profile)
+	apiRouteUser.Post("/register", Register)
 }
 
 //Login Handler for endpoint
