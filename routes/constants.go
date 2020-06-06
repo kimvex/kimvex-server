@@ -22,7 +22,7 @@ type User struct {
 	UserID   string `json:userId`
 }
 
-//Profile struct
+//ProfileStruct struct
 type ProfileStruct struct {
 	UserID   sql.NullString `json:"user_id"`
 	Fullname sql.NullString `json:"fullname"`
@@ -35,6 +35,35 @@ type ProfileStruct struct {
 	Code     sql.NullString `json:"code"`
 }
 
+//ReponseProfile struct
+type ReponseProfile struct {
+	UserID   *string `json:"user_id"`
+	Fullname *string `json:"fullname"`
+	Email    *string `json:"email"`
+	Phone    *string `json:"phone"`
+	Age      *string `json:"age"`
+	Gender   *string `json:"gender"`
+	Image    *string `json:"image"`
+	CreateAt *string `json:"create_at"`
+	Code     *string `json:"code"`
+}
+
+//RegisterData struct
+type RegisterData struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Fullname string `json:"fullname"`
+	Age      string `json:"age"`
+	Phone    int    `json:"phone"`
+	Gender   string `json:"gender"`
+}
+
+//ValidateExistUser struct
+type ValidateExistUser struct {
+	Email string `json:"email"`
+}
+
+//TokenResponse struct
 type TokenResponse struct {
 	Token string `json:"token"`
 }

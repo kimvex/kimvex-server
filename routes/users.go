@@ -1,32 +1,24 @@
 package routes
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"time"
 
+	"../helper"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gofiber/fiber"
 	"golang.org/x/crypto/bcrypt"
 )
 
-//ReponseProfile struct
-type ReponseProfile struct {
-	UserID   *string `json:"user_id"`
-	Fullname *string `json:"fullname"`
-	Email    *string `json:"email"`
-	Phone    *string `json:"phone"`
-	Age      *string `json:"age"`
-	Gender   *string `json:"gender"`
-	Image    *string `json:"image"`
-	CreateAt *string `json:"create_at"`
-	Code     *string `json:"code"`
-}
-
 //Users Namespace for endpoint of users
 func Users() {
 	apiRoute.Post("/login", Login)
 	apiRoute.Get("/profile", Profile)
+	apiRoute.Post("/register", Register)
 }
 
 //Login Handler for endpoint
@@ -82,6 +74,122 @@ func Login(c *fiber.Ctx) {
 	error := ErrorResponse{MESSAGE: "Usuario ó contraseña incorrectos"}
 	c.JSON(error)
 	c.Status(401)
+}
+
+//Register Handler for endpoint
+func Register(c *fiber.Ctx) {
+	var UserData RegisterData
+	var existUser ValidateExistUser
+
+	rts, te := http.Get("https://donfreddy.kimvex.com")
+	fmt.Println(rts, "que paso2", te)
+
+	if errorParse := c.BodyParser(&UserData); errorParse != nil {
+		fmt.Println("Error parsing data", errorParse)
+		c.JSON(ErrorResponse{MESSAGE: "Error al parsear información"})
+		c.Status(400)
+		return
+	}
+
+	fmt.Println(UserData.Email, UserData.Password, UserData.Fullname, UserData.Age, UserData.Phone, UserData.Gender)
+	if len(UserData.Email) == 0 || len(UserData.Password) == 0 || len(UserData.Fullname) == 0 || len(UserData.Age) == 0 || UserData.Phone == 0 || len(UserData.Gender) == 0 {
+		c.JSON(ErrorResponse{MESSAGE: "Incomplete data"})
+		c.Status(400)
+		return
+	}
+
+	sq.Select("email").
+		From("usersk").
+		Where(sq.Eq{"email": UserData.Email}).
+		RunWith(database).
+		QueryRow().
+		Scan(&existUser.Email)
+
+	if len(existUser.Email) > 0 {
+		fmt.Println("El usuario ya esta registrado", existUser.Email)
+		error := ErrorResponse{MESSAGE: "Users exist"}
+		c.JSON(error)
+		c.Status(400)
+		return
+	}
+
+	// if ErrorGetUser != nil {
+	// 	fmt.Println(ErrorGetUser)
+	// 	error := ErrorResponse{MESSAGE: "Problem with get user information"}
+	// 	c.JSON(error)
+	// 	c.Status(400)
+	// 	return
+	// }
+
+	passwordHash, _ := bcrypt.GenerateFromPassword([]byte(UserData.Password), 14)
+
+	id, errorInsert := sq.Insert("usersk").
+		Columns(
+			"email",
+			"password",
+			"fullname",
+			"age",
+			"phone",
+			"gender",
+			"status",
+		).
+		Values(
+			UserData.Email,
+			string(passwordHash),
+			UserData.Fullname,
+			UserData.Age,
+			UserData.Phone,
+			UserData.Gender,
+			0,
+		).
+		RunWith(database).
+		Exec()
+
+	fmt.Println(errorInsert, "si")
+	if errorInsert != nil {
+		fmt.Println(errorInsert)
+		ErrorI := ErrorResponse{MESSAGE: "No se pudo registrar al usuario"}
+		c.JSON(ErrorI)
+		c.SendStatus(400)
+		return
+	}
+
+	r, _ := id.LastInsertId()
+
+	if r > 0 {
+		firstHS, _ := helper.RandomCode(2)
+		secondHS, _ := helper.RandomCode(2)
+		thirdHS, _ := helper.RandomCode(2)
+		fourHS, _ := helper.RandomCode(2)
+		codeRef := fmt.Sprintf("%v-%v-%v-%v", firstHS, secondHS, thirdHS, fourHS)
+
+		_, errorInsertCode := sq.Insert("code_reference").
+			Columns("code", "user_id").
+			Values(codeRef, r).
+			RunWith(database).
+			Exec()
+
+		if errorInsertCode != nil {
+			fmt.Println(errorInsertCode, "problem with generate code")
+			c.JSON(ErrorResponse{MESSAGE: "Problem with generate code"})
+			return
+		}
+
+		requestBody, _ := json.Marshal(map[string]string{
+			"send_to": UserData.Email,
+		})
+
+		rps, e := http.Post("https://process.kimvex.com/api/code_send_mail", "application/json", bytes.NewBuffer(requestBody))
+
+		fmt.Println(rps, "que paso", e, codeRef)
+
+		if e != nil {
+			fmt.Println(e, "to post code")
+		}
+
+		success := SuccessResponse{MESSAGE: "El usuario se registro con exito"}
+		c.JSON(success)
+	}
 }
 
 //Profile Handler for endpoint
