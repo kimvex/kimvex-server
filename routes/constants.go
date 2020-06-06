@@ -58,6 +58,25 @@ type RegisterData struct {
 	Gender   string `json:"gender"`
 }
 
+//UpdateProfile struct
+type UpdateProfile struct {
+	Email       string `json:"email"`
+	Password    string `json:"password"`
+	NewPassword string `json:"new_password"`
+	Fullname    string `json:"fullname"`
+	Age         string `json:"age"`
+	Phone       int    `json:"phone"`
+	Gender      string `json:"gender"`
+	Address     string `json:"address"`
+	URLImage    string `json:"url_image"`
+}
+
+//BasicUser struct
+type BasicUser struct {
+	UserID   string `json:"user_id"`
+	Password string `json:"password"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`

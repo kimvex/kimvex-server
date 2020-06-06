@@ -52,7 +52,6 @@ var ValidateRoute = func(c *fiber.Ctx) {
 func API(app *fiber.App, Database *sql.DB, RedisCl redis.Conn, UserIDC func(string) string) {
 
 	apiRoute = app.Group("/api")
-	apiRoute.Use("/profile", ValidateRoute)
 	database = Database
 	redisC = RedisCl
 	userIDF = UserIDC

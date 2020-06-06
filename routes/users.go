@@ -17,9 +17,15 @@ import (
 //Users Namespace for endpoint of users
 func Users() {
 	apiRouteUser := apiRoute.Group("/users")
+
+	//Validations token
+	apiRouteUser.Use("/profile", ValidateRoute)
+	apiRouteUser.Use("/update/profile", ValidateRoute)
+
 	apiRouteUser.Post("/login", Login)
 	apiRouteUser.Get("/profile", Profile)
 	apiRouteUser.Post("/register", Register)
+	apiRouteUser.Put("/update/profile", UpdateProfileEnd)
 }
 
 //Login Handler for endpoint
@@ -113,14 +119,6 @@ func Register(c *fiber.Ctx) {
 		c.Status(400)
 		return
 	}
-
-	// if ErrorGetUser != nil {
-	// 	fmt.Println(ErrorGetUser)
-	// 	error := ErrorResponse{MESSAGE: "Problem with get user information"}
-	// 	c.JSON(error)
-	// 	c.Status(400)
-	// 	return
-	// }
 
 	passwordHash, _ := bcrypt.GenerateFromPassword([]byte(UserData.Password), 14)
 
@@ -249,4 +247,107 @@ func Profile(c *fiber.Ctx) {
 	}
 
 	c.JSON(response)
+}
+
+//UpdateProfileEnd Handler for endpoint
+func UpdateProfileEnd(c *fiber.Ctx) {
+	userID := userIDF(c.Get("token"))
+	var profileSave UpdateProfile
+	var baseUser BasicUser
+
+	if errorParse := c.BodyParser(&profileSave); errorParse != nil {
+		fmt.Println("Error parsing data", errorParse)
+		c.JSON(ErrorResponse{MESSAGE: "Error al parsear información"})
+		c.Status(400)
+		return
+	}
+
+	ErrorRequest := sq.Select(
+		"user_id",
+		"password",
+	).
+		From("usersk").
+		Where(sq.Eq{"user_id": userID}).
+		RunWith(database).
+		QueryRow().
+		Scan(&baseUser.UserID, &baseUser.Password)
+
+	if ErrorRequest != nil {
+		fmt.Println(ErrorRequest, "Error to get user update profile")
+		c.JSON(ErrorResponse{MESSAGE: "Error to get user"})
+		c.SendStatus(404)
+		return
+	}
+
+	if len(profileSave.Password) > 0 && len(profileSave.NewPassword) > 0 {
+		compare := bcrypt.CompareHashAndPassword([]byte(string(profileSave.Password)), []byte(baseUser.Password))
+
+		if compare != nil {
+			c.JSON(ErrorResponse{MESSAGE: "IncorrectPassword"})
+			c.SendStatus(401)
+			return
+		}
+
+		newPasswordHash, _ := bcrypt.GenerateFromPassword([]byte(profileSave.NewPassword), 14)
+
+		_, ErrorUpdatePassword := sq.Update("usersk").
+			Set("password", newPasswordHash).
+			Where(sq.Eq{"user_id": userID}).
+			RunWith(database).
+			Exec()
+
+		if ErrorUpdatePassword != nil {
+			fmt.Println(ErrorUpdatePassword, "Error to update new password")
+			c.JSON(ErrorResponse{MESSAGE: "Problem to save new password"})
+			c.SendStatus(500)
+			return
+		}
+
+		c.JSON(SuccessResponse{MESSAGE: "Update password"})
+		return
+	}
+
+	queryUpdateValue := sq.Update("usersk")
+
+	if len(profileSave.Email) > 0 {
+		queryUpdateValue = queryUpdateValue.Set("email", profileSave.Email)
+	}
+
+	if len(profileSave.Fullname) > 0 {
+		queryUpdateValue = queryUpdateValue.Set("fullname", profileSave.Fullname)
+	}
+
+	if len(profileSave.Age) > 0 {
+		queryUpdateValue = queryUpdateValue.Set("age", profileSave.Age)
+	}
+
+	if profileSave.Phone > 0 {
+		queryUpdateValue = queryUpdateValue.Set("phone", profileSave.Phone)
+	}
+
+	if len(profileSave.Gender) > 0 {
+		queryUpdateValue = queryUpdateValue.Set("gender", profileSave.Gender)
+	}
+
+	if len(profileSave.Address) > 0 {
+		queryUpdateValue = queryUpdateValue.Set("address", profileSave.Address)
+	}
+
+	if len(profileSave.URLImage) > 0 {
+		queryUpdateValue = queryUpdateValue.Set("url_image", profileSave.URLImage)
+	}
+
+	_, ErrorUpdateProfile := queryUpdateValue.
+		Where(sq.Eq{"user_id": userID}).
+		RunWith(database).
+		Exec()
+
+	if ErrorUpdateProfile != nil {
+		fmt.Println(ErrorUpdateProfile, "Problem with update profile")
+		c.JSON(ErrorResponse{MESSAGE: "Problem with update profile"})
+		c.SendStatus(500)
+		return
+	}
+
+	c.JSON(SuccessResponse{MESSAGE: "Profile updated"})
 }
