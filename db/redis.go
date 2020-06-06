@@ -25,7 +25,7 @@ func RedisConnect() redis.Conn {
 
 //GetUserID for get userid
 func GetUserID(token string) string {
-	value, error := redis.String(connection.Connection.Do("get", "foo"))
+	value, error := redis.String(connection.Connection.Do("get", token))
 	fmt.Println("value", value)
 
 	if error != nil {
