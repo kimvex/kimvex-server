@@ -26,6 +26,7 @@ func Users() {
 	apiRouteUser.Get("/profile", Profile)
 	apiRouteUser.Post("/register", Register)
 	apiRouteUser.Put("/update/profile", UpdateProfileEnd)
+	apiRouteUser.Post("/logout", Logout)
 }
 
 //Login Handler for endpoint
@@ -350,4 +351,13 @@ func UpdateProfileEnd(c *fiber.Ctx) {
 	}
 
 	c.JSON(SuccessResponse{MESSAGE: "Profile updated"})
+}
+
+//Logout Handler for endpoint
+func Logout(c *fiber.Ctx) {
+	Token := c.Get("token")
+
+	redisC.Do("DEL", Token)
+
+	c.JSON(SuccessResponse{MESSAGE: "Logout success"})
 }

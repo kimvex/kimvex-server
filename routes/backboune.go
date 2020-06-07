@@ -24,7 +24,13 @@ var ValidateRoute = func(c *fiber.Ctx) {
 		})
 
 		if token.Valid {
-			c.Next()
+			validateRedis := userIDF(c.Get("token"))
+			if len(validateRedis) > 0 {
+				c.Next()
+			} else {
+				c.JSON(ErrorResponse{MESSAGE: "Token expired"})
+				c.SendStatus(401)
+			}
 			return
 		}
 
