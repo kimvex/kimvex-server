@@ -47,7 +47,7 @@ func Login(c *fiber.Ctx) {
 
 	errorGetUser := sq.Select("email", "password", "user_id").
 		From("usersk").
-		Where(sq.Eq{"email": userLogin.Email}).
+		Where(sq.Eq{"email": userLogin.Email, "status": 1}).
 		RunWith(database).
 		QueryRow().
 		Scan(&selectedUser.Email, &selectedUser.Password, &selectedUser.UserID)
@@ -93,9 +93,6 @@ func Login(c *fiber.Ctx) {
 func Register(c *fiber.Ctx) {
 	var UserData RegisterData
 	var existUser ValidateExistUser
-
-	rts, te := http.Get("https://donfreddy.kimvex.com")
-	fmt.Println(rts, "que paso2", te)
 
 	if errorParse := c.BodyParser(&UserData); errorParse != nil {
 		fmt.Println("Error parsing data", errorParse)
