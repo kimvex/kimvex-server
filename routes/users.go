@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"../helper"
@@ -22,6 +23,7 @@ func Users() {
 	apiRouteUser.Use("/profile", ValidateRoute)
 	apiRouteUser.Use("/update/profile", ValidateRoute)
 	apiRouteUser.Use("/restore_password", ValidateRoute)
+	apiRouteUser.Use("/code/auth", ValidateRoute)
 
 	apiRouteUser.Post("/login", Login)
 	apiRouteUser.Get("/profile", Profile)
@@ -29,6 +31,7 @@ func Users() {
 	apiRouteUser.Put("/update/profile", UpdateProfileEnd)
 	apiRouteUser.Post("/logout", Logout)
 	apiRouteUser.Post("/restore_password", RestorePassword)
+	apiRouteUser.Get("/code/auth", CodeAuth)
 }
 
 //Login Handler for endpoint
@@ -167,7 +170,7 @@ func Register(c *fiber.Ctx) {
 
 		_, errorInsertCode := sq.Insert("code_reference").
 			Columns("code", "user_id").
-			Values(codeRef, r).
+			Values(strings.ToUpper(codeRef), r).
 			RunWith(database).
 			Exec()
 
@@ -420,4 +423,25 @@ func RestorePassword(c *fiber.Ctx) {
 		return
 	}
 
+}
+
+//CodeAuth Handler for endpoint
+func CodeAuth(c *fiber.Ctx) {
+	userID := userIDF(c.Get("token"))
+	code := c.Query("reffer_code")
+	var structCode SQLCodeRef
+	fmt.Println(code, "sio")
+	ErrorGetCode := sq.Select("code", "code_reference_id").
+		From("code_reference").
+		Where("code = ? AND user_id <> ?", code, userID).
+		RunWith(database).
+		Scan(&structCode.Code, &structCode.CodeReferenceID)
+
+	if ErrorGetCode != nil {
+		fmt.Println(ErrorGetCode, "Problem with get code")
+	}
+
+	fmt.Println(strings.ToUpper("47a6-8a54-4310-463b"), "-.-")
+
+	c.JSON(structCode)
 }

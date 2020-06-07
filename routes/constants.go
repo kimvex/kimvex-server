@@ -85,6 +85,17 @@ type DataRestorePassword struct {
 	Email       string `json:"email"`
 }
 
+//RefCode struct
+type RefCode struct {
+	RefferCode string `json:"reffer_code"`
+}
+
+//SQLCodeRef struct
+type SQLCodeRef struct {
+	Code            string `json:"code"`
+	CodeReferenceID string `json:"code_reference_id"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`
