@@ -77,6 +77,14 @@ type BasicUser struct {
 	Password string `json:"password"`
 }
 
+//DataRestorePassword struct
+type DataRestorePassword struct {
+	NewPassword string `json:"new_password"`
+	OldPassword string `json:"old_password"`
+	Code        string `json:"code"`
+	Email       string `json:"email"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`

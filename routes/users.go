@@ -21,12 +21,14 @@ func Users() {
 	//Validations token
 	apiRouteUser.Use("/profile", ValidateRoute)
 	apiRouteUser.Use("/update/profile", ValidateRoute)
+	apiRouteUser.Use("/restore_password", ValidateRoute)
 
 	apiRouteUser.Post("/login", Login)
 	apiRouteUser.Get("/profile", Profile)
 	apiRouteUser.Post("/register", Register)
 	apiRouteUser.Put("/update/profile", UpdateProfileEnd)
 	apiRouteUser.Post("/logout", Logout)
+	apiRouteUser.Post("/restore_password", RestorePassword)
 }
 
 //Login Handler for endpoint
@@ -360,4 +362,62 @@ func Logout(c *fiber.Ctx) {
 	redisC.Do("DEL", Token)
 
 	c.JSON(SuccessResponse{MESSAGE: "Logout success"})
+}
+
+//RestorePassword Handler for endpoint
+func RestorePassword(c *fiber.Ctx) {
+	var data DataRestorePassword
+	var user BasicUser
+
+	if errorParse := c.BodyParser(&data); errorParse != nil {
+		fmt.Println("Error parsing data", errorParse)
+		c.JSON(ErrorResponse{MESSAGE: "Error al parsear información"})
+		c.Status(400)
+		return
+	}
+
+	if len(data.NewPassword) > 0 || len(data.OldPassword) > 0 || len(data.Code) > 0 || len(data.Email) > 0 {
+		fmt.Println("Parameters are missing")
+		c.JSON(ErrorResponse{MESSAGE: "Parameters are missing"})
+		c.SendStatus(400)
+		return
+	}
+
+	ErrorGetCode := sq.Select("user_id", "password").
+		From("code_restore").
+		LeftJoin("usersk on code_restore.user_id=usersk.user_id").
+		Where(sq.Eq{"code": data.Code, "email": data.Email, "active": 0}).
+		RunWith(database).
+		Scan(&user.UserID, &user.Password)
+
+	if ErrorGetCode != nil {
+		fmt.Println(ErrorGetCode, "Problem with get code")
+		c.JSON(ErrorResponse{MESSAGE: "Problem with get code"})
+		c.SendStatus(500)
+		return
+	}
+
+	compare := bcrypt.CompareHashAndPassword([]byte(string(data.OldPassword)), []byte(user.Password))
+
+	if compare != nil {
+		c.JSON(ErrorResponse{MESSAGE: "IncorrectPassword"})
+		c.SendStatus(401)
+		return
+	}
+
+	newPasswordHash, _ := bcrypt.GenerateFromPassword([]byte(data.NewPassword), 14)
+
+	_, ErrorUpdatePassword := sq.Update("usersk").
+		Set("password", newPasswordHash).
+		Where(sq.Eq{"user_id": user.UserID}).
+		RunWith(database).
+		Exec()
+
+	if ErrorUpdatePassword != nil {
+		fmt.Println(ErrorUpdatePassword, "Error to update new password")
+		c.JSON(ErrorResponse{MESSAGE: "Problem to save new password"})
+		c.SendStatus(500)
+		return
+	}
+
 }
