@@ -96,6 +96,31 @@ type SQLCodeRef struct {
 	CodeReferenceID string `json:"code_reference_id"`
 }
 
+//RefferalsStruct struct
+type RefferalsStruct struct {
+	RefundID sql.NullString `json:"refund_id"`
+	MoneyWin sql.NullString `json:"money_win"`
+	DayUsed  sql.NullString `json:"day_used"`
+	UserID   sql.NullString `json:"user_id"`
+	ShopID   sql.NullString `json:"shop_id"`
+	ShopName sql.NullString `json:"shop_name"`
+}
+
+//RefferalsPounters struct
+type RefferalsPounters struct {
+	RefundID *string `json:"refund_id"`
+	MoneyWin *string `json:"money_win"`
+	DayUsed  *string `json:"day_used"`
+	UserID   *string `json:"user_id"`
+	ShopID   *string `json:"shop_id"`
+	ShopName *string `json:"shop_name"`
+}
+
+//ResponseRefferals struct
+type ResponseRefferals struct {
+	Referrals []RefferalsPounters `json:"referrals"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`

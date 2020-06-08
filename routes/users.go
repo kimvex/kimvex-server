@@ -24,6 +24,8 @@ func Users() {
 	apiRouteUser.Use("/update/profile", ValidateRoute)
 	apiRouteUser.Use("/restore_password", ValidateRoute)
 	apiRouteUser.Use("/code/auth", ValidateRoute)
+	apiRouteUser.Use("/code/auth", ValidateRoute)
+	apiRouteUser.Use("/referrals", ValidateRoute)
 
 	apiRouteUser.Post("/login", Login)
 	apiRouteUser.Get("/profile", Profile)
@@ -32,6 +34,7 @@ func Users() {
 	apiRouteUser.Post("/logout", Logout)
 	apiRouteUser.Post("/restore_password", RestorePassword)
 	apiRouteUser.Get("/code/auth", CodeAuth)
+	apiRouteUser.Get("/referrals", Referrals)
 }
 
 //Login Handler for endpoint
@@ -441,4 +444,65 @@ func CodeAuth(c *fiber.Ctx) {
 	fmt.Println(strings.ToUpper("47a6-8a54-4310-463b"), "-.-")
 
 	c.JSON(structCode)
+}
+
+//Referrals Handler for endpoint
+func Referrals(c *fiber.Ctx) {
+	userID := userIDF(c.Get("token"))
+	var refferalsSQL RefferalsStruct
+	var listRefferals []RefferalsStruct
+	var pounters RefferalsPounters
+	listReponse := []RefferalsPounters{}
+
+	ref, errorReff := sq.Select(
+		"code_used.refund_id",
+		"money_win",
+		"day_used",
+		"code_reference.user_id",
+		"plans_pay.shop_id",
+		"shop.shop_name",
+	).
+		From("code_used").
+		LeftJoin("code_reference on code_reference.code_reference_id = code_used.code_reference_id").
+		LeftJoin("plans_pay on plans_pay.plans_id = code_used.plans_id").
+		LeftJoin("shop on shop.shop_id = plans_pay.shop_id").
+		Where("code_reference.user_id = ? AND code_used.plans_id IS NOT NULL AND code_used.refund_id IS NULL AND code_used.paid_out IS NULL", userID).
+		RunWith(database).
+		Query()
+
+	fmt.Println(ref, "was")
+
+	if errorReff != nil {
+		fmt.Println(errorReff, "Error get refferals")
+		c.JSON(ErrorResponse{MESSAGE: "Problem with get refferals"})
+		c.SendStatus(400)
+		return
+	}
+
+	for ref.Next() {
+		_ = ref.Scan(
+			&refferalsSQL.RefundID,
+			&refferalsSQL.MoneyWin,
+			&refferalsSQL.DayUsed,
+			&refferalsSQL.UserID,
+			&refferalsSQL.ShopID,
+			&refferalsSQL.ShopName,
+		)
+
+		listRefferals = append(listRefferals, refferalsSQL)
+	}
+
+	for i := 0; i < len(listRefferals); i++ {
+		pounters.RefundID = &listRefferals[i].RefundID.String
+		pounters.MoneyWin = &listRefferals[i].MoneyWin.String
+		pounters.DayUsed = &listRefferals[i].DayUsed.String
+		pounters.UserID = &listRefferals[i].UserID.String
+		pounters.ShopID = &listRefferals[i].ShopID.String
+		pounters.ShopName = &listRefferals[i].ShopName.String
+		listReponse = append(listReponse, pounters)
+	}
+
+	response := ResponseRefferals{Referrals: listReponse}
+
+	c.JSON(response)
 }
