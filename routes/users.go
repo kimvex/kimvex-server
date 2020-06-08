@@ -26,6 +26,7 @@ func Users() {
 	apiRouteUser.Use("/code/auth", ValidateRoute)
 	apiRouteUser.Use("/code/auth", ValidateRoute)
 	apiRouteUser.Use("/referrals", ValidateRoute)
+	apiRouteUser.Use("/my_code", ValidateRoute)
 
 	apiRouteUser.Post("/login", Login)
 	apiRouteUser.Get("/profile", Profile)
@@ -35,6 +36,7 @@ func Users() {
 	apiRouteUser.Post("/restore_password", RestorePassword)
 	apiRouteUser.Get("/code/auth", CodeAuth)
 	apiRouteUser.Get("/referrals", Referrals)
+	apiRouteUser.Get("/my_code", MyCodeHandler)
 }
 
 //Login Handler for endpoint
@@ -505,4 +507,24 @@ func Referrals(c *fiber.Ctx) {
 	response := ResponseRefferals{Referrals: listReponse}
 
 	c.JSON(response)
+}
+
+//MyCodeHandler Handler for endpoint
+func MyCodeHandler(c *fiber.Ctx) {
+	userID := userIDF(c.Get("token"))
+	var myCodeResponse MyCode
+
+	ErrorCode := sq.Select("code").
+		From("code_reference").
+		Where("user_id = ?", userID).
+		RunWith(database).
+		Scan(&myCodeResponse.Code)
+
+	if ErrorCode != nil {
+		fmt.Println("Error to get my code", ErrorCode)
+		c.JSON(ErrorResponse{MESSAGE: "Error to get code"})
+		c.SendStatus(400)
+	}
+
+	c.JSON(myCodeResponse)
 }

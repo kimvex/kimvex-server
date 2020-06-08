@@ -121,6 +121,11 @@ type ResponseRefferals struct {
 	Referrals []RefferalsPounters `json:"referrals"`
 }
 
+//MyCode struct
+type MyCode struct {
+	Code string `json:"code"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`
