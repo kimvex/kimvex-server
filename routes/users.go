@@ -28,6 +28,7 @@ func Users() {
 	apiRouteUser.Use("/referrals", ValidateRoute)
 	apiRouteUser.Use("/my_code", ValidateRoute)
 	apiRouteUser.Use("/refferals_fail", ValidateRoute)
+	apiRouteUser.Use("/earned_referrals", ValidateRoute)
 
 	apiRouteUser.Post("/login", Login)
 	apiRouteUser.Get("/profile", Profile)
@@ -39,6 +40,7 @@ func Users() {
 	apiRouteUser.Get("/referrals", Referrals)
 	apiRouteUser.Get("/my_code", MyCodeHandler)
 	apiRouteUser.Get("/refferals_fail", ReferralsFail)
+	apiRouteUser.Get("/earned_referrals", EarnedReferrals)
 }
 
 //Login Handler for endpoint
@@ -586,4 +588,39 @@ func ReferralsFail(c *fiber.Ctx) {
 	response := ResponseRefferalsFail{ReferralsFail: listReponse}
 
 	c.JSON(response)
+}
+
+//EarnedReferrals Handler for endpoint
+func EarnedReferrals(c *fiber.Ctx) {
+	userID := userIDF(c.Get("token"))
+	var response ResponseEarnedReferrals
+	var responsePointer ResponseEarnedReferralsPointer
+
+	ErrorEarned := sq.Select(
+		"code_used.code_reference_id",
+		"code_reference.user_id",
+		"SUM(code_used.money_win) AS money_win",
+	).
+		From("code_used").
+		LeftJoin("code_reference on code_reference.code_reference_id = code_used.code_reference_id").
+		Where("code_reference.user_id = ? AND code_used.plans_id IS NOT NULL AND code_used.refund_id IS NULL AND code_used.paid_out IS NOT NULL", userID).
+		GroupBy("code_used.code_reference_id").
+		RunWith(database).
+		Scan(&response.CodeReferenceID, &response.UserID, &response.MoneyWin)
+
+	if ErrorEarned != nil {
+		fmt.Println(ErrorEarned, "Error to get earned")
+	}
+
+	responsePointer.CodeReferenceID = &response.CodeReferenceID.String
+	responsePointer.UserID = &response.UserID.String
+	responsePointer.MoneyWin = &response.MoneyWin.String
+
+	if len(*responsePointer.CodeReferenceID) == 0 && len(*responsePointer.UserID) == 0 {
+		c.JSON(ResponseEarnedReferralsEmpty{})
+	} else {
+		fmt.Println("ppp")
+		c.JSON(ResponseEarnedReferralsSuccess{EarnedReferrals: responsePointer})
+	}
+
 }

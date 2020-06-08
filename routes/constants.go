@@ -131,6 +131,34 @@ type ResponseRefferalsFail struct {
 	ReferralsFail []RefferalsPounters `json:"reffers_fail"`
 }
 
+//ResponseEarnedReferrals struct
+type ResponseEarnedReferrals struct {
+	CodeReferenceID sql.NullString `json:"code_reference_id"`
+	UserID          sql.NullString `json:"user_id"`
+	MoneyWin        sql.NullString `json:"money_win"`
+}
+
+//ResponseEarnedReferralsPointer struct
+type ResponseEarnedReferralsPointer struct {
+	CodeReferenceID *string `json:"code_reference_id"`
+	UserID          *string `json:"user_id"`
+	MoneyWin        *string `json:"money_win"`
+}
+
+//ResponseEarnedReferralsSuccess atruct
+type ResponseEarnedReferralsSuccess struct {
+	EarnedReferrals ResponseEarnedReferralsPointer `json:"earned_referrals"`
+}
+
+//Empty struct
+type Empty struct {
+}
+
+//ResponseEarnedReferralsEmpty atruct
+type ResponseEarnedReferralsEmpty struct {
+	EarnedReferrals Empty `json:"earned_referrals"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`
