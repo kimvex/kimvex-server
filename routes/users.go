@@ -29,6 +29,7 @@ func Users() {
 	apiRouteUser.Use("/my_code", ValidateRoute)
 	apiRouteUser.Use("/refferals_fail", ValidateRoute)
 	apiRouteUser.Use("/earned_referrals", ValidateRoute)
+	apiRouteUser.Use("/earned_referrals_month", ValidateRoute)
 
 	apiRouteUser.Post("/login", Login)
 	apiRouteUser.Get("/profile", Profile)
@@ -41,6 +42,7 @@ func Users() {
 	apiRouteUser.Get("/my_code", MyCodeHandler)
 	apiRouteUser.Get("/refferals_fail", ReferralsFail)
 	apiRouteUser.Get("/earned_referrals", EarnedReferrals)
+	apiRouteUser.Get("/earned_referrals_month", EarnedReferralsMonth)
 }
 
 //Login Handler for endpoint
@@ -623,4 +625,53 @@ func EarnedReferrals(c *fiber.Ctx) {
 		c.JSON(ResponseEarnedReferralsSuccess{EarnedReferrals: responsePointer})
 	}
 
+}
+
+//EarnedReferralsMonth Handler for endpoint
+func EarnedReferralsMonth(c *fiber.Ctx) {
+	userID := userIDF(c.Get("token"))
+	minDate := 30
+	var earnedSQL ResponseEarnedReferrals
+	var response ResponseEarnedReferralsPointer
+
+	loc, _ := time.LoadLocation("america/mexico_city")
+	now := time.Now().In(loc)
+
+	y := now.Year()
+	m := now.Month().String()
+	monthNumber := helper.Month(m)
+
+	if monthNumber == 2 {
+		minDate = 28
+	}
+
+	dateInit := fmt.Sprintf("%v-%v-1", y, monthNumber)
+	dateEnd := fmt.Sprintf("%v-%v-%v", y, monthNumber, minDate)
+
+	ErrorSQL := sq.Select("code_used.code_reference_id", "user_id", "SUM(money_win) AS money_win").
+		From("code_used").
+		LeftJoin("code_reference on code_reference.code_reference_id=code_used.code_reference_id").
+		Where("(day_used BETWEEN ? AND ?) AND code_reference.user_id = ? AND code_used.plans_id IS NOT NULL AND code_used.refund_id IS NULL AND code_used.paid_out IS NULL",
+			dateInit,
+			dateEnd,
+			userID,
+		).
+		GroupBy("code_used.code_reference_id").
+		RunWith(database).
+		QueryRow().
+		Scan(&earnedSQL.CodeReferenceID, &earnedSQL.UserID, &earnedSQL.MoneyWin)
+
+	if ErrorSQL != nil {
+		fmt.Println(ErrorSQL, "Problem to get amount earned")
+	}
+
+	response.CodeReferenceID = &earnedSQL.CodeReferenceID.String
+	response.UserID = &earnedSQL.UserID.String
+	response.MoneyWin = &earnedSQL.MoneyWin.String
+
+	if len(*response.CodeReferenceID) == 0 && len(*response.UserID) == 0 {
+		c.JSON(ResponseEarnedReferralsEmpty{})
+	} else {
+		c.JSON(ResponseEarnedReferralsSuccess{EarnedReferrals: response})
+	}
 }
