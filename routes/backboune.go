@@ -63,6 +63,7 @@ func API(app *fiber.App, Database *sql.DB, RedisCl redis.Conn, UserIDC func(stri
 	userIDF = UserIDC
 
 	Users()
+	Shops()
 
 	apiRoute.Get("/", func(c *fiber.Ctx) {
 		userID := userIDF(c.Get("token"))

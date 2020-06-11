@@ -159,6 +159,64 @@ type ResponseEarnedReferralsEmpty struct {
 	EarnedReferrals Empty `json:"earned_referrals"`
 }
 
+//SQLGetShop struct
+type SQLGetShop struct {
+	ShopID           sql.NullString `json:"shop_id"`
+	ShopName         sql.NullString `json:"shop_name"`
+	Address          sql.NullString `json:"address"`
+	Phone            sql.NullString `json:"phone"`
+	Phone2           sql.NullString `json:"phone2"`
+	Description      sql.NullString `json:"description"`
+	CoverImage       sql.NullString `json:"cover_image"`
+	AcceptCard       sql.NullString `json:"accept_card"`
+	ListCards        sql.NullString `json:"list_cards"`
+	Lat              sql.NullString `json:"lat"`
+	Lon              sql.NullString `json:"lon"`
+	ScoreShop        sql.NullString `json:"score_shop"`
+	Status           sql.NullString `json:"status"`
+	Logo             sql.NullString `json:"logo"`
+	ServiceTypeID    sql.NullString `json:"service_type_id"`
+	SubServiceTypeID sql.NullString `json:"sub_service_type_id"`
+	LUN              sql.NullString `json:"LUN"`
+	MAR              sql.NullString `json:"MAR"`
+	MIE              sql.NullString `json:"MIE"`
+	JUE              sql.NullString `json:"JUE"`
+	VIE              sql.NullString `json:"VIE"`
+	SAB              sql.NullString `json:"SAB"`
+	DOM              sql.NullString `json:"DOM"`
+	UserID           sql.NullString `json:"user_id"`
+	Images           sql.NullString `json:"images"`
+}
+
+//ShopPointerGet struct
+type ShopPointerGet struct {
+	ShopID           *string  `json:"shop_id"`
+	ShopName         *string  `json:"shop_name"`
+	Address          *string  `json:"address"`
+	Phone            *string  `json:"phone"`
+	Phone2           *string  `json:"phone2"`
+	Description      *string  `json:"description"`
+	CoverImage       *string  `json:"cover_image"`
+	AcceptCard       *string  `json:"accept_card"`
+	ListCards        []string `json:"list_cards"`
+	Lat              *string  `json:"lat"`
+	Lon              *string  `json:"lon"`
+	ScoreShop        *string  `json:"score_shop"`
+	Status           *string  `json:"status"`
+	Logo             *string  `json:"logo"`
+	ServiceTypeID    *string  `json:"service_type_id"`
+	SubServiceTypeID *string  `json:"sub_service_type_id"`
+	LUN              *string  `json:"LUN"`
+	MAR              *string  `json:"MAR"`
+	MIE              *string  `json:"MIE"`
+	JUE              *string  `json:"JUE"`
+	VIE              *string  `json:"VIE"`
+	SAB              *string  `json:"SAB"`
+	DOM              *string  `json:"DOM"`
+	UserID           *string  `json:"user_id"`
+	Images           []string `json:"images"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`
