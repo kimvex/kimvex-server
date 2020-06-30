@@ -1,8 +1,7 @@
 package engine
 
 import (
-	"fmt"
-
+	"github.com/gofiber/cors"
 	"github.com/gofiber/fiber"
 	"github.com/gofiber/logger"
 
@@ -14,12 +13,18 @@ import (
 func ServerExecute() {
 	app := fiber.New()
 	app.Use(logger.New())
+	app.Use(cors.New(
+		cors.Config{
+			AllowOrigins: []string{"http://localhost:3001"},
+		},
+	))
 
 	database := db.MySQLConnect()
-	redisC := db.RedisConnect()
+	db.RedisConnect()
 	getUser := db.GetUserID
-	fmt.Println(getUser, "cas")
+	setUser := db.SetUserID
+	delUser := db.DeleteUserID
 
-	routes.API(app, database, redisC, getUser)
-	app.Listen(3000)
+	routes.API(app, database, getUser, setUser, delUser)
+	app.Listen(3003)
 }

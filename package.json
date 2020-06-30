@@ -2,6 +2,7 @@
  "dependencies": {
   "bcrypt": "golang.org/x/crypto/bcrypt",
   "client": "github.com/stfnmllr/go-resp3/client",
+  "cors": "github.com/gofiber/cors",
   "fiber": "github.com/gofiber/fiber",
   "jwt-go": "github.com/dgrijalva/jwt-go",
   "logger": "github.com/gofiber/logger",
