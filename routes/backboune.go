@@ -6,14 +6,14 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gofiber/fiber"
-	"github.com/gomodule/redigo/redis"
 )
 
 var (
-	apiRoute *fiber.Group
+	apiRoute fiber.Router
 	database *sql.DB
-	redisC   redis.Conn
 	userIDF  func(string) string
+	setID    func(string, string)
+	delID    func(string)
 )
 
 //ValidateRoute endpoint for validate users
@@ -24,6 +24,7 @@ var ValidateRoute = func(c *fiber.Ctx) {
 		})
 
 		if token.Valid {
+			fmt.Println(c.Get("token"))
 			validateRedis := userIDF(c.Get("token"))
 			if len(validateRedis) > 0 {
 				c.Next()
@@ -55,12 +56,13 @@ var ValidateRoute = func(c *fiber.Ctx) {
 }
 
 //API function pricipal for backboune
-func API(app *fiber.App, Database *sql.DB, RedisCl redis.Conn, UserIDC func(string) string) {
+func API(app *fiber.App, Database *sql.DB, UserIDC func(string) string, SetIDC func(string, string), DelIDC func(string)) {
 
 	apiRoute = app.Group("/api")
 	database = Database
-	redisC = RedisCl
 	userIDF = UserIDC
+	setID = SetIDC
+	delID = DelIDC
 
 	Users()
 	Shops()

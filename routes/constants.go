@@ -217,6 +217,83 @@ type ShopPointerGet struct {
 	Images           []string `json:"images"`
 }
 
+//Paginations struct for generate paginations.
+type Paginations struct {
+	Limit string `query:"limit"`
+	Page  string `query:"page"`
+}
+
+//MyShops structure for build response of shops of a profile
+type MyShops struct {
+	ShopID         sql.NullString `json:"shop_id"`
+	ShopName       sql.NullString `json:"shop_name"`
+	Address        sql.NullString `json:"address"`
+	Phone          sql.NullString `json:"phone"`
+	Phone2         sql.NullString `json:"phone2"`
+	Description    sql.NullString `json:"description"`
+	CoverImage     sql.NullString `json:"cover_image"`
+	AcceptCard     sql.NullString `json:"accept_card"`
+	ListCards      sql.NullString `json:"list_cards"`
+	Lat            sql.NullString `json:"lat"`
+	Lon            sql.NullString `json:"lon"`
+	ScoreShop      sql.NullString `json:"score_shop"`
+	Status         sql.NullString `json:"status"`
+	LockShop       sql.NullString `json:"lock_shop"`
+	Canceled       sql.NullString `json:"canceled"`
+	ServiceName    sql.NullString `json:"service_name"`
+	SubServiceName sql.NullString `json:"sub_service_name"`
+	LUN            sql.NullString `json:"LUN"`
+	MAR            sql.NullString `json:"MAR"`
+	MIE            sql.NullString `json:"MIE"`
+	JUE            sql.NullString `json:"JUE"`
+	VIE            sql.NullString `json:"VIE"`
+	SAB            sql.NullString `json:"SAB"`
+	DOM            sql.NullString `json:"DOM"`
+	UserID         sql.NullString `json:"user_id"`
+	Images         sql.NullString `json:"images"`
+	DateInit       sql.NullString `json:"date_init"`
+	DateFinish     sql.NullString `json:"date_finish"`
+	TypeCharge     sql.NullString `json:"type_charge"`
+}
+
+//MyShopsPoints structure for build response of shops of a profile
+type MyShopsPoints struct {
+	ShopID         *string `json:"shop_id"`
+	ShopName       *string `json:"shop_name"`
+	Address        *string `json:"address"`
+	Phone          *string `json:"phone"`
+	Phone2         *string `json:"phone2"`
+	Description    *string `json:"description"`
+	CoverImage     *string `json:"cover_image"`
+	AcceptCard     *string `json:"accept_card"`
+	ListCards      *string `json:"list_cards"`
+	Lat            *string `json:"lat"`
+	Lon            *string `json:"lon"`
+	ScoreShop      *string `json:"score_shop"`
+	Status         *string `json:"status"`
+	LockShop       *string `json:"lock_shop"`
+	Canceled       *string `json:"canceled"`
+	ServiceName    *string `json:"service_name"`
+	SubServiceName *string `json:"sub_service_name"`
+	LUN            *string `json:"LUN"`
+	MAR            *string `json:"MAR"`
+	MIE            *string `json:"MIE"`
+	JUE            *string `json:"JUE"`
+	VIE            *string `json:"VIE"`
+	SAB            *string `json:"SAB"`
+	DOM            *string `json:"DOM"`
+	UserID         *string `json:"user_id"`
+	Images         *string `json:"images"`
+	DateInit       *string `json:"date_init"`
+	DateFinish     *string `json:"date_finish"`
+	TypeCharge     *string `json:"type_charge"`
+}
+
+//ResponseResult for response result of arrays
+type ResponseResult struct {
+	Result []MyShopsPoints `json:"result"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`

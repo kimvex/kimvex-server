@@ -17,7 +17,7 @@ import (
 
 //Users Namespace for endpoint of users
 func Users() {
-	apiRouteUser := apiRoute.Group("/users")
+	apiRouteUser := apiRoute.Group("/user")
 
 	//Validations token
 	apiRouteUser.Use("/profile", ValidateRoute)
@@ -90,7 +90,8 @@ func Login(c *fiber.Ctx) {
 			return
 		}
 
-		redisC.Do("SET", tokenResolve, selectedUser.UserID)
+		fmt.Println(tokenResolve, selectedUser.UserID)
+		setID(tokenResolve, selectedUser.UserID)
 		c.JSON(TokenResponse{Token: tokenResolve})
 		return
 	}
@@ -370,7 +371,7 @@ func UpdateProfileEnd(c *fiber.Ctx) {
 func Logout(c *fiber.Ctx) {
 	Token := c.Get("token")
 
-	redisC.Do("DEL", Token)
+	delID(Token)
 
 	c.JSON(SuccessResponse{MESSAGE: "Logout success"})
 }

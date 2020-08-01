@@ -45,7 +45,7 @@ func GetUserID(token string) string {
 	y := connection.Connection.Get()
 	value, error := redis.String(y.Do("GET", token))
 	fmt.Println("value", value)
-	y.Close()
+	defer y.Close()
 	if error != nil {
 		fmt.Println(error, "que?")
 		return ""
@@ -58,12 +58,12 @@ func GetUserID(token string) string {
 func SetUserID(token string, userID string) {
 	y := connection.Connection.Get()
 	y.Do("SET", token, userID)
-	y.Close()
+	defer y.Close()
 }
 
 //DeleteUserID for get userid
 func DeleteUserID(token string) {
 	y := connection.Connection.Get()
 	y.Do("DEL", token)
-	y.Close()
+	defer y.Close()
 }
