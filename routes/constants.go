@@ -294,6 +294,79 @@ type ResponseResult struct {
 	Result []MyShopsPoints `json:"result"`
 }
 
+//ParamsShopOffers for parse shopid
+type ParamsShopOffers struct {
+	Status string `json:"status"`
+	Limit  string `json:"limit"`
+	Page   string `json:"page"`
+}
+
+//ResponseListOffersSQL of SQL
+type ResponseListOffersSQL struct {
+	OffersID    sql.NullString `json:"offers_id"`
+	Title       sql.NullString `json:"title"`
+	Description sql.NullString `json:"description"`
+	DateInit    sql.NullString `json:"date_init"`
+	DateEnd     sql.NullString `json:"date_end"`
+	ImageURL    sql.NullString `json:"image_url"`
+	Active      sql.NullString `json:"active"`
+	Lat         sql.NullString `json:"lat"`
+	Lon         sql.NullString `json:"lon"`
+}
+
+//ResponseListOffers of json
+type ResponseListOffers struct {
+	OffersID    *string `json:"offers_id"`
+	Title       *string `json:"title"`
+	Description *string `json:"description"`
+	DateInit    *string `json:"date_init"`
+	DateEnd     *string `json:"date_end"`
+	ImageURL    *string `json:"image_url"`
+	Active      *string `json:"active"`
+	Lat         *string `json:"lat"`
+	Lon         *string `json:"lon"`
+}
+
+//ResponseResultOffers of json
+type ResponseResultOffers struct {
+	Offers []ResponseListOffers `json:"offers"`
+}
+
+//AOffer return of SQL
+type AOffer struct {
+	OffersID    sql.NullString `json:"offers_id"`
+	Title       sql.NullString `json:"title"`
+	Description sql.NullString `json:"description"`
+	DateEnd     sql.NullString `json:"date_end"`
+	ImageURL    sql.NullString `json:"image_url"`
+	Active      sql.NullString `json:"active"`
+	Lat         sql.NullString `json:"lat"`
+	Lon         sql.NullString `json:"lon"`
+	ShopID      sql.NullString `json:"shop_id"`
+	ShopName    sql.NullString `json:"shop_name"`
+	CoverImage  sql.NullString `json:"cover_image"`
+}
+
+//AOfferPointer of setOffer response
+type AOfferPointer struct {
+	OffersID    *string `json:"offers_id"`
+	Title       *string `json:"title"`
+	Description *string `json:"description"`
+	DateEnd     *string `json:"date_end"`
+	ImageURL    *string `json:"image_url"`
+	Active      *string `json:"active"`
+	Lat         *string `json:"lat"`
+	Lon         *string `json:"lon"`
+	ShopID      *string `json:"shop_id"`
+	ShopName    *string `json:"shop_name"`
+	CoverImage  *string `json:"cover_image"`
+}
+
+//ResponseInforOffer for response to the server
+type ResponseInforOffer struct {
+	Offer AOfferPointer `json:"offer"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`

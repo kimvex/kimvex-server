@@ -15,9 +15,14 @@ func Shops() {
 	apiRouteProfile := apiRoute.Group("/profile")
 
 	//Validations token
-	// apiRouteShop.Use("/:shop_id", ValidateRoute)
+	apiRouteProfile.Use("/shops", ValidateRoute)
+	apiRouteShop.Use("/:shop_id/offers", ValidateRoute)
+	apiRouteShop.Use("/offer/:offer_id", ValidateRoute)
 
 	apiRouteShop.Get("/:shop_id", ShopGet)
+	apiRouteShop.Get("/:shop_id/offers", ShopOffers)
+	apiRouteShop.Get("/offer/:offer_id", OfferInfo)
+
 	apiRouteProfile.Get("/shops", ProfileShop)
 }
 
@@ -178,7 +183,7 @@ func ProfileShop(c *fiber.Ctx) {
 	if err := c.QueryParser(Pagination); err != nil {
 		fmt.Println(err, "Error parsing shops")
 	}
-	fmt.Println(Pagination)
+
 	page, _ := strconv.Atoi(Pagination.Page)
 	limit, _ := strconv.Atoi(Pagination.Limit)
 	offset := limit * page
@@ -221,7 +226,7 @@ func ProfileShop(c *fiber.Ctx) {
 		LeftJoin("shop_schedules on shop_schedules.shop_id = shop.shop_id").
 		LeftJoin("plans_pay on plans_pay.shop_id = shop.shop_id").
 		LeftJoin("usersk on usersk.user_id = shop.user_id").
-		Where("shop.user_id = ? AND plans_pay.expired = ? OR plans_pay.expired IS NULL", userID, 0).
+		Where("shop.user_id = ? AND (plans_pay.expired = ? OR plans_pay.expired IS NULL)", userID, 0).
 		OrderBy("create_at_shop DESC").
 		GroupBy("shop.shop_id, shop_schedules.LUN, shop_schedules.MAR, shop_schedules.MAR, shop_schedules.MIE, shop_schedules.JUE, shop_schedules.VIE, shop_schedules.SAB, shop_schedules.DOM, plans_pay.date_init, plans_pay.date_finish, plans_pay.type_charge").
 		Limit(uint64(limit)).
@@ -308,4 +313,157 @@ func ProfileShop(c *fiber.Ctx) {
 	}
 
 	c.JSON(ResponseResult{Result: listReponse})
+}
+
+//ShopOffers handler for get offers
+func ShopOffers(c *fiber.Ctx) {
+	ShopID := c.Params("shop_id")
+	ShopOffers := new(ParamsShopOffers)
+
+	if err := c.QueryParser(ShopOffers); err != nil {
+		fmt.Println(err, "Error parsing shop id")
+	}
+
+	page, _ := strconv.Atoi(ShopOffers.Page)
+	limit, _ := strconv.Atoi(ShopOffers.Limit)
+	offset := limit * page
+
+	var ListOfferSQL ResponseListOffersSQL
+	var ListOffers []ResponseListOffersSQL
+	var OffersPointer ResponseListOffers
+	Offers := []ResponseListOffers{}
+
+	ChainOfferSQL := sq.Select(
+		"offers_id",
+		"title",
+		"description",
+		"date_init",
+		"date_end",
+		"image_url",
+		"active",
+		"lat",
+		"lon",
+	).
+		From("offers")
+
+	ChainWhere := "shop_id = ?"
+
+	if ShopOffers.Status == "actives" {
+		ChainWhere = ChainWhere + " and active = 1"
+	}
+
+	if ShopOffers.Status == "inactive" {
+		ChainWhere = ChainWhere + " and active = 0"
+	}
+
+	OfferSQL, err := ChainOfferSQL.
+		Where(ChainWhere, ShopID).
+		OrderBy("create_at_offer DESC").
+		Limit(uint64(limit)).
+		Offset(uint64(offset)).
+		RunWith(database).
+		Query()
+
+	if err != nil {
+		fmt.Println(err, "Error to get offers")
+		ErrorProfile := ErrorResponse{MESSAGE: "Error to get offers"}
+		c.JSON(ErrorProfile)
+		c.Status(400)
+		return
+	}
+
+	for OfferSQL.Next() {
+		_ = OfferSQL.Scan(
+			&ListOfferSQL.OffersID,
+			&ListOfferSQL.Title,
+			&ListOfferSQL.Description,
+			&ListOfferSQL.DateInit,
+			&ListOfferSQL.DateEnd,
+			&ListOfferSQL.ImageURL,
+			&ListOfferSQL.Active,
+			&ListOfferSQL.Lat,
+			&ListOfferSQL.Lon,
+		)
+
+		ListOffers = append(ListOffers, ListOfferSQL)
+	}
+
+	for i := 0; i < len(ListOffers); i++ {
+		OffersPointer.OffersID = &ListOffers[i].OffersID.String
+		OffersPointer.Title = &ListOffers[i].Title.String
+		OffersPointer.Description = &ListOffers[i].Description.String
+		OffersPointer.DateInit = &ListOffers[i].DateInit.String
+		OffersPointer.DateEnd = &ListOffers[i].DateEnd.String
+		OffersPointer.ImageURL = &ListOffers[i].ImageURL.String
+		OffersPointer.Active = &ListOffers[i].Active.String
+		OffersPointer.Lat = &ListOffers[i].Lat.String
+		OffersPointer.Lon = &ListOffers[i].Lon.String
+
+		Offers = append(Offers, OffersPointer)
+	}
+
+	response := ResponseResultOffers{Offers: Offers}
+	c.JSON(response)
+}
+
+//OfferInfo handler for get information of a offer
+func OfferInfo(c *fiber.Ctx) {
+	OfferID := c.Params("offer_id")
+	fmt.Println(OfferID)
+
+	var AOfferSQL AOffer
+	var ResponseToOffer AOfferPointer
+	ToResponse := ResponseInforOffer{}
+
+	OfferResultsError := sq.Select(
+		"offers_id",
+		"title",
+		"offers.description",
+		"date_end",
+		"image_url",
+		"active",
+		"offers.lat",
+		"offers.lon",
+		"shop.shop_id",
+		"shop_name",
+		"cover_image",
+	).
+		From("offers").
+		LeftJoin("shop on offers.shop_id = shop.shop_id").
+		Where("offers_id = ?", OfferID).
+		RunWith(database).
+		QueryRow().
+		Scan(
+			&AOfferSQL.OffersID,
+			&AOfferSQL.Title,
+			&AOfferSQL.Description,
+			&AOfferSQL.DateEnd,
+			&AOfferSQL.ImageURL,
+			&AOfferSQL.Active,
+			&AOfferSQL.Lat,
+			&AOfferSQL.Lon,
+			&AOfferSQL.ShopID,
+			&AOfferSQL.ShopName,
+			&AOfferSQL.CoverImage,
+		)
+
+	if OfferResultsError != nil {
+		fmt.Println("error to get offer", OfferResultsError)
+	}
+
+	ResponseToOffer.OffersID = &AOfferSQL.OffersID.String
+	ResponseToOffer.Title = &AOfferSQL.Title.String
+	ResponseToOffer.Description = &AOfferSQL.Description.String
+	ResponseToOffer.DateEnd = &AOfferSQL.DateEnd.String
+	ResponseToOffer.ImageURL = &AOfferSQL.ImageURL.String
+	ResponseToOffer.Active = &AOfferSQL.Active.String
+	ResponseToOffer.Lat = &AOfferSQL.Lat.String
+	ResponseToOffer.Lon = &AOfferSQL.Lon.String
+	ResponseToOffer.ShopID = &AOfferSQL.ShopID.String
+	ResponseToOffer.ShopName = &AOfferSQL.ShopName.String
+	ResponseToOffer.CoverImage = &AOfferSQL.CoverImage.String
+
+	ToResponse.Offer = ResponseToOffer
+
+	c.JSON(ToResponse)
 }
