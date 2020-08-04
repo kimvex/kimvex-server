@@ -221,10 +221,10 @@ func ProfileShop(c *fiber.Ctx) {
 		"shop_schedules.SAB",
 		"shop_schedules.DOM",
 		"usersk.user_id",
+		"GROUP_CONCAT(coalesce(images_shop.url_image, '')) AS images",
 		"date_init",
 		"date_finish",
 		"type_charge",
-		"GROUP_CONCAT(coalesce(images_shop.url_image, '')) AS images",
 	).
 		From("shop").
 		LeftJoin("images_shop on images_shop.shop_id = shop.shop_id").
@@ -234,7 +234,7 @@ func ProfileShop(c *fiber.Ctx) {
 		LeftJoin("plans_pay on plans_pay.shop_id = shop.shop_id").
 		LeftJoin("usersk on usersk.user_id = shop.user_id").
 		Where("shop.user_id = ? AND (plans_pay.expired = ? OR plans_pay.expired IS NULL)", userID, 0).
-		OrderBy("create_at_shop DESC").
+		OrderBy("shop_id DESC").
 		GroupBy("shop.shop_id, shop_schedules.LUN, shop_schedules.MAR, shop_schedules.MAR, shop_schedules.MIE, shop_schedules.JUE, shop_schedules.VIE, shop_schedules.SAB, shop_schedules.DOM, plans_pay.date_init, plans_pay.date_finish, plans_pay.type_charge").
 		Limit(uint64(limit)).
 		Offset(uint64(offset)).
@@ -311,7 +311,7 @@ func ProfileShop(c *fiber.Ctx) {
 		finalMyShops.SAB = &MyShopUnStructured[i].SAB.String
 		finalMyShops.DOM = &MyShopUnStructured[i].DOM.String
 		finalMyShops.UserID = &MyShopUnStructured[i].UserID.String
-		finalMyShops.Images = &MyShopUnStructured[i].Images.String
+		finalMyShops.Images = strings.Split(MyShopUnStructured[i].Images.String, ",")
 		finalMyShops.DateInit = &MyShopUnStructured[i].DateInit.String
 		finalMyShops.DateFinish = &MyShopUnStructured[i].DateFinish.String
 		finalMyShops.TypeCharge = &MyShopUnStructured[i].TypeCharge.String

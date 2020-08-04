@@ -258,35 +258,35 @@ type MyShops struct {
 
 //MyShopsPoints structure for build response of shops of a profile
 type MyShopsPoints struct {
-	ShopID         *string `json:"shop_id"`
-	ShopName       *string `json:"shop_name"`
-	Address        *string `json:"address"`
-	Phone          *string `json:"phone"`
-	Phone2         *string `json:"phone2"`
-	Description    *string `json:"description"`
-	CoverImage     *string `json:"cover_image"`
-	AcceptCard     *string `json:"accept_card"`
-	ListCards      *string `json:"list_cards"`
-	Lat            *string `json:"lat"`
-	Lon            *string `json:"lon"`
-	ScoreShop      *string `json:"score_shop"`
-	Status         *string `json:"status"`
-	LockShop       *string `json:"lock_shop"`
-	Canceled       *string `json:"canceled"`
-	ServiceName    *string `json:"service_name"`
-	SubServiceName *string `json:"sub_service_name"`
-	LUN            *string `json:"LUN"`
-	MAR            *string `json:"MAR"`
-	MIE            *string `json:"MIE"`
-	JUE            *string `json:"JUE"`
-	VIE            *string `json:"VIE"`
-	SAB            *string `json:"SAB"`
-	DOM            *string `json:"DOM"`
-	UserID         *string `json:"user_id"`
-	Images         *string `json:"images"`
-	DateInit       *string `json:"date_init"`
-	DateFinish     *string `json:"date_finish"`
-	TypeCharge     *string `json:"type_charge"`
+	ShopID         *string  `json:"shop_id"`
+	ShopName       *string  `json:"shop_name"`
+	Address        *string  `json:"address"`
+	Phone          *string  `json:"phone"`
+	Phone2         *string  `json:"phone2"`
+	Description    *string  `json:"description"`
+	CoverImage     *string  `json:"cover_image"`
+	AcceptCard     *string  `json:"accept_card"`
+	ListCards      *string  `json:"list_cards"`
+	Lat            *string  `json:"lat"`
+	Lon            *string  `json:"lon"`
+	ScoreShop      *string  `json:"score_shop"`
+	Status         *string  `json:"status"`
+	LockShop       *string  `json:"lock_shop"`
+	Canceled       *string  `json:"canceled"`
+	ServiceName    *string  `json:"service_name"`
+	SubServiceName *string  `json:"sub_service_name"`
+	LUN            *string  `json:"LUN"`
+	MAR            *string  `json:"MAR"`
+	MIE            *string  `json:"MIE"`
+	JUE            *string  `json:"JUE"`
+	VIE            *string  `json:"VIE"`
+	SAB            *string  `json:"SAB"`
+	DOM            *string  `json:"DOM"`
+	UserID         *string  `json:"user_id"`
+	Images         []string `json:"images"`
+	DateInit       *string  `json:"date_init"`
+	DateFinish     *string  `json:"date_finish"`
+	TypeCharge     *string  `json:"type_charge"`
 }
 
 //ResponseResult for response result of arrays
