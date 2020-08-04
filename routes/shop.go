@@ -13,6 +13,7 @@ import (
 func Shops() {
 	apiRouteShop := apiRoute.Group("/shop")
 	apiRouteProfile := apiRoute.Group("/profile")
+	apiRouteBase := apiRoute.Group("/")
 
 	//Validations token
 	apiRouteProfile.Use("/shops", ValidateRoute)
@@ -22,6 +23,9 @@ func Shops() {
 	apiRouteShop.Get("/:shop_id", ShopGet)
 	apiRouteShop.Get("/:shop_id/offers", ShopOffers)
 	apiRouteShop.Get("/offer/:offer_id", OfferInfo)
+
+	apiRouteBase.Get("/services", Services)
+	apiRouteBase.Get("/sub_service/:service_id", SubServices)
 
 	apiRouteProfile.Get("/shops", ProfileShop)
 }
@@ -122,7 +126,10 @@ func ShopGet(c *fiber.Ctx) {
 		)
 
 	if shopResultsError != nil {
-		fmt.Println("error to get shop", shopResultsError)
+		fmt.Println(shopResultsError, "Error get Shops")
+		c.JSON(ErrorResponse{MESSAGE: "Problem with get shops"})
+		c.SendStatus(400)
+		return
 	}
 
 	response.ShopID = &SQLResponse.ShopID.String
@@ -448,7 +455,10 @@ func OfferInfo(c *fiber.Ctx) {
 		)
 
 	if OfferResultsError != nil {
-		fmt.Println("error to get offer", OfferResultsError)
+		fmt.Println(OfferResultsError, "Error get offers")
+		c.JSON(ErrorResponse{MESSAGE: "Problem with get offers"})
+		c.SendStatus(400)
+		return
 	}
 
 	ResponseToOffer.OffersID = &AOfferSQL.OffersID.String
@@ -466,4 +476,93 @@ func OfferInfo(c *fiber.Ctx) {
 	ToResponse.Offer = ResponseToOffer
 
 	c.JSON(ToResponse)
+}
+
+//Services handler for get services
+func Services(c *fiber.Ctx) {
+	var ServiceFromSQL ServiceSQL
+	var ServicePointer []ServiceSQL
+	var Pointer ServiceSQLPointer
+	Pointers := []ServiceSQLPointer{}
+
+	Services, ErrorGetService := sq.Select(
+		"service_type_id",
+		"service_name",
+	).
+		From("service_type").
+		RunWith(database).
+		Query()
+
+	if ErrorGetService != nil {
+		fmt.Println(ErrorGetService, "Error get services")
+		c.JSON(ErrorResponse{MESSAGE: "Problem with get services"})
+		c.SendStatus(400)
+		return
+	}
+
+	for Services.Next() {
+		_ = Services.Scan(
+			&ServiceFromSQL.ServiceTypeID,
+			&ServiceFromSQL.ServiceName,
+		)
+
+		ServicePointer = append(ServicePointer, ServiceFromSQL)
+	}
+
+	for i := 0; i < len(ServicePointer); i++ {
+		Pointer.ServiceTypeID = &ServicePointer[i].ServiceTypeID.String
+		Pointer.ServiceName = &ServicePointer[i].ServiceName.String
+
+		Pointers = append(Pointers, Pointer)
+	}
+
+	response := ServiceResponse{Services: Pointers}
+
+	c.JSON(response)
+}
+
+//SubServices Handler for get sub services of a service
+func SubServices(c *fiber.Ctx) {
+	ServiceID := c.Params("service_id")
+
+	var SubServiceFromSQL SubServiceSQL
+	var SubServicePointer []SubServiceSQL
+	var Pointer SubServiceSQLPointer
+	Pointers := []SubServiceSQLPointer{}
+
+	SubServicesSQL, ErrorSubservices := sq.Select(
+		"sub_service_type_id",
+		"sub_service_name",
+	).
+		From("sub_service_type").
+		Where("service_type_id = ?", ServiceID).
+		RunWith(database).
+		Query()
+
+	if ErrorSubservices != nil {
+		fmt.Println(ErrorSubservices, "Error get sub services")
+		c.JSON(ErrorResponse{MESSAGE: "Problem with get sub services"})
+		c.SendStatus(400)
+		return
+	}
+
+	for SubServicesSQL.Next() {
+		_ = SubServicesSQL.Scan(
+			&SubServiceFromSQL.SubServiceTypeID,
+			&SubServiceFromSQL.SubServiceName,
+		)
+
+		SubServicePointer = append(SubServicePointer, SubServiceFromSQL)
+	}
+
+	for i := 0; i < len(SubServicePointer); i++ {
+		Pointer.SubServiceTypeID = &SubServicePointer[i].SubServiceTypeID.String
+		Pointer.SubServiceName = &SubServicePointer[i].SubServiceName.String
+
+		Pointers = append(Pointers, Pointer)
+	}
+
+	response := SubServiceResponse{SubService: Pointers}
+
+	c.JSON(response)
 }

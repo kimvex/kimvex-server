@@ -367,6 +367,40 @@ type ResponseInforOffer struct {
 	Offer AOfferPointer `json:"offer"`
 }
 
+//ServiceSQL for get SQL
+type ServiceSQL struct {
+	ServiceTypeID sql.NullString `json:"service_type_id"`
+	ServiceName   sql.NullString `json:"service_name"`
+}
+
+//ServiceSQLPointer for get pointer
+type ServiceSQLPointer struct {
+	ServiceTypeID *string `json:"service_type_id"`
+	ServiceName   *string `json:"service_name"`
+}
+
+//ServiceResponse of results
+type ServiceResponse struct {
+	Services []ServiceSQLPointer `json:"services"`
+}
+
+//SubServiceSQL for get SQL
+type SubServiceSQL struct {
+	SubServiceTypeID sql.NullString `json:"sub_service_type_id"`
+	SubServiceName   sql.NullString `json:"sub_service_name"`
+}
+
+//SubServiceSQLPointer for get pointer
+type SubServiceSQLPointer struct {
+	SubServiceTypeID *string `json:"sub_service_type_id"`
+	SubServiceName   *string `json:"sub_service_name"`
+}
+
+//SubServiceResponse of results
+type SubServiceResponse struct {
+	SubService []SubServiceSQLPointer `json:"sub_service"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`
