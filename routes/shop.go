@@ -23,6 +23,9 @@ func Shops() {
 	apiRouteShop.Get("/:shop_id", ShopGet)
 	apiRouteShop.Get("/:shop_id/offers", ShopOffers)
 	apiRouteShop.Get("/offer/:offer_id", OfferInfo)
+	apiRouteShop.Get("/:shop_id/comments", Comments)
+	apiRouteShop.Get("/:shop_id/score/:user_id", Score)
+	apiRouteShop.Get("/:shop_id/page", Page)
 
 	apiRouteBase.Get("/services", Services)
 	apiRouteBase.Get("/sub_service/:service_id", SubServices)
@@ -565,4 +568,197 @@ func SubServices(c *fiber.Ctx) {
 	response := SubServiceResponse{SubService: Pointers}
 
 	c.JSON(response)
+}
+
+//Comments Handler for get comments of a shop
+func Comments(c *fiber.Ctx) {
+	ShopID := c.Params("shop_id")
+
+	var CommentFromSQL CommentsSQL
+	CommentsFromSQL := []CommentsSQL{}
+	var CommentPointer CommentsPointerStruct
+	CommentsPointer := []CommentsPointerStruct{}
+
+	Pagination := new(Paginations)
+
+	if err := c.QueryParser(Pagination); err != nil {
+		fmt.Println(err, "Error parsing shops")
+	}
+
+	Page, _ := strconv.Atoi(Pagination.Page)
+	Limit, _ := strconv.Atoi(Pagination.Limit)
+
+	Offset := Limit * Page
+
+	FromSQL, ErrorComments := sq.Select(
+		"comment",
+		"create_date_at",
+		"usersk.user_id",
+		"fullname",
+		"image",
+	).
+		From("shop_comments").
+		LeftJoin("usersk on shop_comments.user_id = usersk.user_id").
+		Where("shop_id = ?", ShopID).
+		OrderBy("create_date_at DESC").
+		Limit(uint64(Limit)).
+		Offset(uint64(Offset)).
+		RunWith(database).
+		Query()
+
+	if ErrorComments != nil {
+		fmt.Println(ErrorComments, "Error to get comments")
+		ErrorProfile := ErrorResponse{MESSAGE: "Error to get comments"}
+		c.JSON(ErrorProfile)
+		c.Status(400)
+		return
+	}
+
+	for FromSQL.Next() {
+		_ = FromSQL.Scan(
+			&CommentFromSQL.Comment,
+			&CommentFromSQL.CreateDateAt,
+			&CommentFromSQL.UserID,
+			&CommentFromSQL.Fullname,
+			&CommentFromSQL.Image,
+		)
+
+		CommentsFromSQL = append(CommentsFromSQL, CommentFromSQL)
+	}
+
+	for i := 0; i < len(CommentsFromSQL); i++ {
+		CommentPointer.Comment = &CommentFromSQL.Comment.String
+		CommentPointer.CreateDateAt = &CommentFromSQL.CreateDateAt.String
+		CommentPointer.UserID = &CommentFromSQL.UserID.String
+		CommentPointer.Fullname = &CommentFromSQL.Fullname.String
+		CommentPointer.Image = &CommentFromSQL.Image.String
+
+		CommentsPointer = append(CommentsPointer, CommentPointer)
+	}
+
+	c.JSON(CommentsPointer)
+}
+
+//Score Handler for get score
+func Score(c *fiber.Ctx) {
+	ShopID := c.Params("shop_id")
+	UserID := c.Params("user_id")
+	var Score ScoreSQL
+	var Response ResponseScore
+
+	ErrorScore := sq.Select(
+		"AVG(score) as score",
+	).
+		From("shop_score_users").
+		Where("shop_id = ? AND user_id = ?", ShopID, UserID).
+		RunWith(database).
+		QueryRow().
+		Scan(
+			&Score.Score,
+		)
+
+	if ErrorScore != nil {
+		fmt.Println(ErrorScore, "Error get score")
+		c.JSON(ErrorResponse{MESSAGE: "Problem with get score"})
+		c.SendStatus(400)
+		return
+	}
+
+	Response.Score = &Score.Score.String
+
+	c.JSON(Response)
+}
+
+//Page Handler for get page
+func Page(c *fiber.Ctx) {
+	ShopID := c.Params("shop_id")
+	userID := userIDF(c.Get("token"))
+	var PageFromSQL PageSQL
+	var PagePointer PagesPointer
+	var response PageInformation
+
+	ErrorPage := sq.Select(
+		"active",
+		"template_type",
+		"style_sheets",
+		"active_days",
+		"images_days",
+		"offers_active",
+		"accept_card_active",
+		"subdomain",
+		"domain",
+		"shop.shop_id",
+		"pages_id",
+		"type_charge",
+		"shop_name",
+		"description",
+		"cover_image",
+		"logo",
+		"shop.user_id",
+	).
+		From("pages").
+		LeftJoin("plans_pay on pages.shop_id = plans_pay.shop_id").
+		LeftJoin("shop on pages.shop_id = shop.shop_id").
+		Where("pages.shop_id = ? AND shop.user_id = ?", ShopID, userID).
+		RunWith(database).
+		QueryRow().
+		Scan(
+			&PageFromSQL.Active,
+			&PageFromSQL.TemplateType,
+			&PageFromSQL.StyleSheets,
+			&PageFromSQL.ActiveDays,
+			&PageFromSQL.ImagesDays,
+			&PageFromSQL.OffersActive,
+			&PageFromSQL.AcceptCardActive,
+			&PageFromSQL.Subdomain,
+			&PageFromSQL.Domain,
+			&PageFromSQL.ShopID,
+			&PageFromSQL.PagesID,
+			&PageFromSQL.TypeCharge,
+			&PageFromSQL.ShopName,
+			&PageFromSQL.Description,
+			&PageFromSQL.CoverImage,
+			&PageFromSQL.Logo,
+			&PageFromSQL.UserID,
+		)
+
+	if ErrorPage != nil {
+		fmt.Println(ErrorPage, "Error get page")
+		c.JSON(ErrorResponse{MESSAGE: "Problem with get page"})
+		c.SendStatus(400)
+		return
+	}
+
+	Active, _ := strconv.Atoi(PageFromSQL.Active.String)
+	PagePointer.Active = Active
+	TemplateType, _ := strconv.Atoi(PageFromSQL.TemplateType.String)
+	PagePointer.TemplateType = TemplateType
+	StyleSheets, _ := strconv.Atoi(PageFromSQL.StyleSheets.String)
+	PagePointer.StyleSheets = StyleSheets
+	ActiveDays, _ := strconv.Atoi(PageFromSQL.ActiveDays.String)
+	PagePointer.ActiveDays = ActiveDays
+	ImagesDays, _ := strconv.Atoi(PageFromSQL.ImagesDays.String)
+	PagePointer.ImagesDays = ImagesDays
+	OffersActive, _ := strconv.Atoi(PageFromSQL.OffersActive.String)
+	PagePointer.OffersActive = OffersActive
+	AcceptCardActive, _ := strconv.Atoi(PageFromSQL.AcceptCardActive.String)
+	PagePointer.AcceptCardActive = AcceptCardActive
+	PagePointer.Subdomain = &PageFromSQL.Subdomain.String
+	PagePointer.Domain = &PageFromSQL.Domain.String
+	PagePointer.ShopID = &PageFromSQL.ShopID.String
+	PagePointer.PagesID = &PageFromSQL.PagesID.String
+	PagePointer.TypeCharge = &PageFromSQL.TypeCharge.String
+	PagePointer.ShopName = &PageFromSQL.ShopName.String
+	PagePointer.Description = &PageFromSQL.Description.String
+	PagePointer.CoverImage = &PageFromSQL.CoverImage.String
+	PagePointer.Logo = &PageFromSQL.Logo.String
+	PagePointer.UserID = &PageFromSQL.UserID.String
+
+	response.Page = PagePointer
+	UserID := *PagePointer.UserID
+	if UserID == userID {
+		c.JSON(response)
+	} else {
+		c.JSON(ErrorResponse{MESSAGE: "Not is owner or active shop"})
+	}
 }

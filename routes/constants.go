@@ -401,6 +401,81 @@ type SubServiceResponse struct {
 	SubService []SubServiceSQLPointer `json:"sub_service"`
 }
 
+//CommentsSQL of comments to SQL
+type CommentsSQL struct {
+	Comment      sql.NullString `json:"comment"`
+	CreateDateAt sql.NullString `json:"create_date_at"`
+	UserID       sql.NullString `json:"user_id"`
+	Fullname     sql.NullString `json:"fullname"`
+	Image        sql.NullString `json:"image"`
+}
+
+//CommentsSQL of comments to SQL
+type CommentsPointerStruct struct {
+	Comment      *string `json:"comment"`
+	CreateDateAt *string `json:"create_date_at"`
+	UserID       *string `json:"user_id"`
+	Fullname     *string `json:"fullname"`
+	Image        *string `json:"image"`
+}
+
+//ScoreSQL of score to SQL
+type ScoreSQL struct {
+	Score sql.NullString `json:"score"`
+}
+
+//ResponseScore response
+type ResponseScore struct {
+	Score *string `json:"score"`
+}
+
+//PageSQL of SQL
+type PageSQL struct {
+	Active           sql.NullString `json:"active"`
+	TemplateType     sql.NullString `json:"template_type"`
+	StyleSheets      sql.NullString `json:"style_sheets"`
+	ActiveDays       sql.NullString `json:"active_days"`
+	ImagesDays       sql.NullString `json:"images_days"`
+	OffersActive     sql.NullString `json:"offers_active"`
+	AcceptCardActive sql.NullString `json:"accept_card_active"`
+	Subdomain        sql.NullString `json:"subdomain"`
+	Domain           sql.NullString `json:"domain"`
+	ShopID           sql.NullString `json:"shop_id"`
+	PagesID          sql.NullString `json:"pages_id"`
+	TypeCharge       sql.NullString `json:"type_charge"`
+	ShopName         sql.NullString `json:"shop_name"`
+	Description      sql.NullString `json:"description"`
+	CoverImage       sql.NullString `json:"cover_image"`
+	Logo             sql.NullString `json:"logo"`
+	UserID           sql.NullString `json:"user_id"`
+}
+
+//PagesPointer of pointer
+type PagesPointer struct {
+	Active           int     `json:"active"`
+	TemplateType     int     `json:"template_type"`
+	StyleSheets      int     `json:"style_sheets"`
+	ActiveDays       int     `json:"active_days"`
+	ImagesDays       int     `json:"images_days"`
+	OffersActive     int     `json:"offers_active"`
+	AcceptCardActive int     `json:"accept_card_active"`
+	Subdomain        *string `json:"subdomain"`
+	Domain           *string `json:"domain"`
+	ShopID           *string `json:"shop_id"`
+	PagesID          *string `json:"pages_id"`
+	TypeCharge       *string `json:"type_charge"`
+	ShopName         *string `json:"shop_name"`
+	Description      *string `json:"description"`
+	CoverImage       *string `json:"cover_image"`
+	Logo             *string `json:"logo"`
+	UserID           *string `json:"user_id"`
+}
+
+//PageInformation struct
+type PageInformation struct {
+	Page PagesPointer `json:"page"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`
