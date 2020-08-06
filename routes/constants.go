@@ -1,6 +1,10 @@
 package routes
 
-import "database/sql"
+import (
+	"database/sql"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 //ErrorResponse Basic
 //ErrorResponse Structure for response of type error api
@@ -474,6 +478,70 @@ type PagesPointer struct {
 //PageInformation struct
 type PageInformation struct {
 	Page PagesPointer `json:"page"`
+}
+
+//Location struct for locations
+type Location struct {
+	Type        string    `json:"type" bson:"type"`
+	Coordinates []float64 `json:"coordinates" bson:"coordinates"`
+}
+
+//FShops Struct for shops
+type FShops struct {
+	ID          primitive.ObjectID `bson:"_id,omitempty"`
+	ShopID      string             `bson:"shop_id,omitempty"`
+	Name        string             `bson:"name,omitempty"`
+	Location    Location           `bson:"location,omitempty"`
+	Category    string             `bson:"category,omitempty"`
+	SubCategory string             `bson:"sub_category,omitempty"`
+	status      bool               `bson:"status,omitempty"`
+	Distance    float64            `bson:"distance,omitempty"`
+}
+
+//FindShopQuery struct
+type FindShopQuery struct {
+	Limit       string `json:"limit"`
+	LastShopID  string `json:"last_shop_id"`
+	MinDistance string `json:"minDistance"`
+	Category    string `json:"category"`
+}
+
+//ShopsID struct
+type ShopsID struct {
+	ShopID   string  `json:"shop_id"`
+	Distance float64 `json:"distance"`
+}
+
+//ShopFromSQLFind struct
+type ShopFromSQLFind struct {
+	ShopID         sql.NullString `json:"shop_id"`
+	ShopName       sql.NullString `json:"shop_name"`
+	Address        sql.NullString `json:"address"`
+	Phone          sql.NullString `json:"phone"`
+	ScoreShop      sql.NullString `json:"score_shop"`
+	CoverImage     sql.NullString `json:"cover_image"`
+	ServiceName    sql.NullString `json:"service_name"`
+	SubServiceName sql.NullString `json:"sub_service_name"`
+}
+
+//ShopFindPointer struct
+type ShopFindPointer struct {
+	ShopID         *string `json:"shop_id"`
+	ShopName       *string `json:"shop_name"`
+	Address        *string `json:"address"`
+	Phone          *string `json:"phone"`
+	ScoreShop      *string `json:"score_shop"`
+	CoverImage     *string `json:"cover_image"`
+	ServiceName    *string `json:"service_name"`
+	SubServiceName *string `json:"sub_service_name"`
+	Distance       float64 `json:"distance"`
+}
+
+//ResponseFinalFindShops struct for response list of shops
+type ResponseFinalFindShops struct {
+	Shop         []ShopFindPointer `json:"shop"`
+	LastShopID   *string           `json:"last_shop_id"`
+	LastDistance float64           `json:"last_distance"`
 }
 
 //ValidateExistUser struct

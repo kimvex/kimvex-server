@@ -21,10 +21,11 @@ func ServerExecute() {
 
 	database := db.MySQLConnect()
 	db.RedisConnect()
+	mongodb := db.MonoDBConnect()
 	getUser := db.GetUserID
 	setUser := db.SetUserID
 	delUser := db.DeleteUserID
 
-	routes.API(app, database, getUser, setUser, delUser)
+	routes.API(app, database, getUser, setUser, delUser, mongodb)
 	app.Listen(3003)
 }

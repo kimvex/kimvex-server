@@ -6,7 +6,9 @@
   "fiber": "github.com/gofiber/fiber",
   "jwt-go": "github.com/dgrijalva/jwt-go",
   "logger": "github.com/gofiber/logger",
+  "mongo": "go.mongodb.org/mongo-driver/mongo",
   "mysql": "github.com/go-sql-driver/mysql",
+  "pq": "github.com/lib/pq",
   "redis": "github.com/gomodule/redigo/redis",
   "squirrel": "github.com/Masterminds/squirrel",
   "v8": "github.com/go-redis/redis/v8"

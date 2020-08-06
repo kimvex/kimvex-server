@@ -6,6 +6,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gofiber/fiber"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var (
@@ -14,6 +15,7 @@ var (
 	userIDF  func(string) string
 	setID    func(string, string)
 	delID    func(string)
+	mongodb  *mongo.Database
 )
 
 //ValidateRoute endpoint for validate users
@@ -56,13 +58,14 @@ var ValidateRoute = func(c *fiber.Ctx) {
 }
 
 //API function pricipal for backboune
-func API(app *fiber.App, Database *sql.DB, UserIDC func(string) string, SetIDC func(string, string), DelIDC func(string)) {
+func API(app *fiber.App, Database *sql.DB, UserIDC func(string) string, SetIDC func(string, string), DelIDC func(string), Mongodb *mongo.Database) {
 
 	apiRoute = app.Group("/api")
 	database = Database
 	userIDF = UserIDC
 	setID = SetIDC
 	delID = DelIDC
+	mongodb = Mongodb
 
 	Users()
 	Shops()

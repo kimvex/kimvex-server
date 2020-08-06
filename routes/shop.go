@@ -1,12 +1,16 @@
 package routes
 
 import (
+	"context"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/gofiber/fiber"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 //Shops namespace
@@ -26,6 +30,7 @@ func Shops() {
 	apiRouteShop.Get("/:shop_id/comments", Comments)
 	apiRouteShop.Get("/:shop_id/score/:user_id", Score)
 	apiRouteShop.Get("/:shop_id/page", Page)
+	apiRouteBase.Get("/find/shops/:lat/:lon", FindShops)
 
 	apiRouteBase.Get("/services", Services)
 	apiRouteBase.Get("/sub_service/:service_id", SubServices)
@@ -761,4 +766,157 @@ func Page(c *fiber.Ctx) {
 	} else {
 		c.JSON(ErrorResponse{MESSAGE: "Not is owner or active shop"})
 	}
+}
+
+//FindShops Handler for get Shop
+func FindShops(c *fiber.Ctx) {
+	Lat := c.Params("lat")
+	Lon := c.Params("lon")
+
+	var shop FShops
+	var array []FShops
+	var ShopIDStruct ShopsID
+	var arrShopID []ShopsID
+	var ShopFind ShopFromSQLFind
+	var ShopArr []ShopFromSQLFind
+	var ShopPointer ShopFindPointer
+	var ShopArrPointer []ShopFindPointer
+
+	LatI, _ := strconv.ParseFloat(Lat, 64)
+	LonI, _ := strconv.ParseFloat(Lon, 64)
+
+	Query := new(FindShopQuery)
+
+	if err := c.QueryParser(Query); err != nil {
+		fmt.Println(err, "Error parsing Query")
+	}
+
+	Query.LastShopID = c.Query("last_shop_id")
+
+	fmt.Println(Query.LastShopID, "last")
+
+	Limit, _ := strconv.Atoi(Query.Limit)
+	MinDistance, _ := strconv.ParseFloat(Query.MinDistance, 64)
+	Aggregate := []bson.M{
+		bson.M{
+			"$geoNear": bson.M{
+				"near": bson.M{
+					"type":        "Point",
+					"coordinates": []float64{LonI, LatI},
+				},
+				"minDistance":   MinDistance,
+				"spherical":     true,
+				"distanceField": "distance",
+			},
+		},
+		bson.M{
+			"$match": bson.M{
+				"status":   true,
+				"category": Query.Category,
+				"shop_id": bson.M{
+					"$nin": []string{Query.LastShopID},
+				},
+			},
+		},
+		bson.M{
+			"$limit": Limit,
+		},
+	}
+
+	curl, error := mongodb.Collection("shop").Aggregate(context.TODO(), Aggregate, options.Aggregate())
+
+	if error != nil {
+		fmt.Println(error)
+	}
+
+	for curl.Next(context.TODO()) {
+		_ = curl.Decode(&shop)
+		ShopIDStruct.ShopID = shop.ShopID
+		ShopIDStruct.Distance = shop.Distance
+		arrShopID = append(arrShopID, ShopIDStruct)
+
+		array = append(array, shop)
+	}
+	// fmt.Println(array)
+	IDs := ""
+
+	for i := 0; i < len(arrShopID); i++ {
+		if len(arrShopID)-1 == i {
+			IDs = fmt.Sprintf("%s%v", IDs, arrShopID[i].ShopID)
+		} else {
+			IDs = fmt.Sprintf("%s%v,", IDs, arrShopID[i].ShopID)
+		}
+	}
+
+	where := fmt.Sprintf("shop_id IN (%s)", IDs)
+
+	fmt.Println(IDs)
+
+	ShopsFromSQL, ErrorShops := sq.Select(
+		"shop_id",
+		"shop_name",
+		"address",
+		"phone",
+		"score_shop",
+		"cover_image",
+		"service_name",
+		"sub_service_name",
+	).
+		From("shop").
+		LeftJoin("service_type on shop.service_type_id = service_type.service_type_id").
+		LeftJoin("sub_service_type on shop.sub_service_type_id = sub_service_type.sub_service_type_id").
+		Where(where).
+		RunWith(database).
+		Query()
+
+	if ErrorShops != nil {
+		fmt.Println(ErrorShops, "Error get Shops find")
+		c.JSON(ErrorResponse{MESSAGE: "Problem with get Shops find"})
+		c.SendStatus(400)
+		return
+	}
+
+	for ShopsFromSQL.Next() {
+		_ = ShopsFromSQL.Scan(
+			&ShopFind.ShopID,
+			&ShopFind.ShopName,
+			&ShopFind.Address,
+			&ShopFind.Phone,
+			&ShopFind.ScoreShop,
+			&ShopFind.CoverImage,
+			&ShopFind.ServiceName,
+			&ShopFind.SubServiceName,
+		)
+
+		ShopArr = append(ShopArr, ShopFind)
+	}
+
+	for i := 0; i < len(ShopArr); i++ {
+		ShopPointer.ShopID = &ShopArr[i].ShopID.String
+		ShopPointer.ShopName = &ShopArr[i].ShopName.String
+		ShopPointer.Address = &ShopArr[i].Address.String
+		ShopPointer.Phone = &ShopArr[i].Phone.String
+		ShopPointer.ScoreShop = &ShopArr[i].ScoreShop.String
+		ShopPointer.CoverImage = &ShopArr[i].CoverImage.String
+		ShopPointer.ServiceName = &ShopArr[i].ServiceName.String
+		ShopPointer.SubServiceName = &ShopArr[i].SubServiceName.String
+
+		for e := 0; e < len(arrShopID); e++ {
+			if arrShopID[e].ShopID == ShopArr[i].ShopID.String {
+				ShopPointer.Distance = arrShopID[e].Distance
+			}
+		}
+
+		ShopArrPointer = append(ShopArrPointer, ShopPointer)
+	}
+
+	sort.Slice(ShopArrPointer, func(i, j int) bool {
+		return ShopArrPointer[i].Distance < ShopArrPointer[j].Distance
+	})
+
+	c.JSON(ResponseFinalFindShops{
+		Shop:         ShopArrPointer,
+		LastShopID:   ShopArrPointer[len(ShopArrPointer)-1].ShopID,
+		LastDistance: ShopArrPointer[len(ShopArrPointer)-1].Distance,
+	})
 }
