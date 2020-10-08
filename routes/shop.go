@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/gofiber/fiber"
@@ -31,6 +32,7 @@ func Shops() {
 	apiRouteShop.Get("/:shop_id/score/:user_id", Score)
 	apiRouteShop.Get("/:shop_id/page", Page)
 	apiRouteBase.Get("/find/shops/:lat/:lon", FindShops)
+	apiRouteBase.Get("/shops/offers/:lat/:lon", FindOffers)
 
 	apiRouteBase.Get("/services", Services)
 	apiRouteBase.Get("/sub_service/:service_id", SubServices)
@@ -918,5 +920,177 @@ func FindShops(c *fiber.Ctx) {
 		Shop:         ShopArrPointer,
 		LastShopID:   ShopArrPointer[len(ShopArrPointer)-1].ShopID,
 		LastDistance: ShopArrPointer[len(ShopArrPointer)-1].Distance,
+	})
+}
+
+//FindOffers Handler for get Offers
+func FindOffers(c *fiber.Ctx) {
+	Lat := c.Params("lat")
+	Lon := c.Params("lon")
+
+	var offers FOffers
+	var array []FOffers
+	var OffersIDStruct OffersID
+	var arrOffersID []OffersID
+	var OffersFind OffersFromSQLFind
+	var OffersArr []OffersFromSQLFind
+	var OffersPointer OffersFindPointer
+	var OffersArrPointer []OffersFindPointer
+
+	LatI, _ := strconv.ParseFloat(Lat, 64)
+	LonI, _ := strconv.ParseFloat(Lon, 64)
+
+	Query := new(FindOfferQuery)
+
+	if err := c.QueryParser(Query); err != nil {
+		fmt.Println(err, "Error parsing Query")
+	}
+
+	Query.LastOfferID = c.Query("last_offer_id")
+
+	fmt.Println(Query.LastOfferID, "last")
+
+	Limit, _ := strconv.Atoi(Query.Limit)
+	MinDistance, _ := strconv.ParseFloat(Query.MinDistance, 64)
+
+	_, errTime := time.LoadLocation("America/Mexico_City")
+
+	if errTime != nil {
+		fmt.Println(errTime)
+	}
+
+	TimeUnParsing := time.Now()
+	TimeString := fmt.Sprintf("%s", TimeUnParsing)
+	TimePaser := strings.Split(TimeString, " ")
+	TimeRemoveSpace := strings.TrimRight(TimePaser[0], " ")
+
+	Aggregate := []bson.M{
+		bson.M{
+			"$geoNear": bson.M{
+				"near": bson.M{
+					"type":        "Point",
+					"coordinates": []float64{LonI, LatI},
+				},
+				"minDistance":   MinDistance,
+				"spherical":     true,
+				"distanceField": "distance",
+			},
+		},
+		bson.M{
+			"$match": bson.M{
+				"active": true,
+				"offer_id": bson.M{
+					"$nin": []string{Query.LastOfferID},
+				},
+				"date_end": bson.M{
+					"$gt": TimeRemoveSpace,
+				},
+			},
+		},
+		bson.M{
+			"$limit": Limit,
+		},
+	}
+
+	curl, error := mongodb.Collection("offers").Aggregate(context.TODO(), Aggregate, options.Aggregate())
+
+	if error != nil {
+		fmt.Println(error)
+	}
+
+	for curl.Next(context.TODO()) {
+		_ = curl.Decode(&offers)
+		OffersIDStruct.OfferID = offers.OfferID
+		OffersIDStruct.Distance = offers.Distance
+		arrOffersID = append(arrOffersID, OffersIDStruct)
+
+		array = append(array, offers)
+	}
+	// fmt.Println(array)
+	IDs := ""
+
+	for i := 0; i < len(arrOffersID); i++ {
+		if len(arrOffersID)-1 == i {
+			IDs = fmt.Sprintf("%s%v", IDs, arrOffersID[i].OfferID)
+		} else {
+			IDs = fmt.Sprintf("%s%v,", IDs, arrOffersID[i].OfferID)
+		}
+	}
+
+	where := fmt.Sprintf("offers_id IN (%s)", IDs)
+
+	offersSQL := sq.Select(
+		"offers_id",
+		"title",
+		"offers.description",
+		"date_init",
+		"date_end",
+		"image_url",
+		"shop.shop_id",
+		"shop_name",
+		"cover_image",
+	).
+		From("offers").
+		LeftJoin("shop on shop.shop_id = offers.shop_id")
+
+	if len(IDs) > 0 {
+		offersSQL = offersSQL.Where(where)
+	}
+
+	OffersFromSQL, ErrorOffers := offersSQL.
+		RunWith(database).
+		Query()
+
+	if ErrorOffers != nil {
+		fmt.Println(ErrorOffers, "Error get Offers find")
+		c.JSON(ErrorResponse{MESSAGE: "Problem with get Offers find"})
+		c.SendStatus(400)
+		return
+	}
+
+	for OffersFromSQL.Next() {
+		_ = OffersFromSQL.Scan(
+			&OffersFind.OfferID,
+			&OffersFind.Title,
+			&OffersFind.Description,
+			&OffersFind.DateInit,
+			&OffersFind.DateEnd,
+			&OffersFind.ImageURL,
+			&OffersFind.ShopID,
+			&OffersFind.ShopName,
+			&OffersFind.CoverImage,
+		)
+
+		OffersArr = append(OffersArr, OffersFind)
+	}
+
+	for i := 0; i < len(OffersArr); i++ {
+		OffersPointer.OfferID = &OffersArr[i].OfferID.String
+		OffersPointer.Title = &OffersArr[i].Title.String
+		OffersPointer.Description = &OffersArr[i].Description.String
+		OffersPointer.DateInit = &OffersArr[i].DateInit.String
+		OffersPointer.DateEnd = &OffersArr[i].DateEnd.String
+		OffersPointer.ImageURL = &OffersArr[i].ImageURL.String
+		OffersPointer.ShopID = &OffersArr[i].ShopID.String
+		OffersPointer.ShopName = &OffersArr[i].ShopName.String
+		OffersPointer.CoverImage = &OffersArr[i].CoverImage.String
+
+		for e := 0; e < len(arrOffersID); e++ {
+			if arrOffersID[e].OfferID == OffersArr[i].OfferID.String {
+				OffersPointer.Distance = arrOffersID[e].Distance
+			}
+		}
+
+		OffersArrPointer = append(OffersArrPointer, OffersPointer)
+	}
+
+	sort.Slice(OffersArrPointer, func(i, j int) bool {
+		return OffersArrPointer[i].Distance < OffersArrPointer[j].Distance
+	})
+
+	c.JSON(ResponseFinalFindOffers{
+		Offers:       OffersArrPointer,
+		LastOfferID:  OffersArrPointer[len(OffersArrPointer)-1].ShopID,
+		LastDistance: OffersArrPointer[len(OffersArrPointer)-1].Distance,
 	})
 }

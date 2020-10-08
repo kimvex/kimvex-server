@@ -544,6 +544,65 @@ type ResponseFinalFindShops struct {
 	LastDistance float64           `json:"last_distance"`
 }
 
+//FOffers structure for list offers
+type FOffers struct {
+	ID       primitive.ObjectID `bson:"_id,omitempty"`
+	OfferID  string             `bson:"offer_id,omitempty"`
+	Title    string             `bson:"title,omitempty"`
+	Location Location           `bson:"location,omitempty"`
+	DateInit string             `bson:"date_init,omitempty"`
+	DateEnd  string             `bson:"date_end,omitempty"`
+	Status   bool               `bson:"status,omitempty"`
+	Distance float64            `bson:"distance,omitempty"`
+}
+
+// OffersID for get id in mongo
+type OffersID struct {
+	OfferID  string  `json:"offer_id"`
+	Distance float64 `json:"distance"`
+}
+
+//OffersFromSQLFind struct for get offers of mysql
+type OffersFromSQLFind struct {
+	OfferID     sql.NullString `json:"offer_id"`
+	Title       sql.NullString `json:"title"`
+	Description sql.NullString `json:"description"`
+	DateInit    sql.NullString `json:"date_init"`
+	DateEnd     sql.NullString `json:"date_end"`
+	ImageURL    sql.NullString `json:"image_url"`
+	ShopID      sql.NullString `json:"shop_id"`
+	ShopName    sql.NullString `json:"shop_name"`
+	CoverImage  sql.NullString `json:"cover_image"`
+}
+
+//OffersFindPointer struct for get offers of mysql
+type OffersFindPointer struct {
+	OfferID     *string `json:"offer_id"`
+	Title       *string `json:"title"`
+	Description *string `json:"description"`
+	DateInit    *string `json:"date_init"`
+	DateEnd     *string `json:"date_end"`
+	ImageURL    *string `json:"image_url"`
+	ShopID      *string `json:"shop_id"`
+	ShopName    *string `json:"shop_name"`
+	CoverImage  *string `json:"cover_image"`
+	Distance    float64 `json:"distance"`
+}
+
+//FindOfferQuery struct
+type FindOfferQuery struct {
+	Limit       string `json:"limit"`
+	LastOfferID string `json:"last_offer_id"`
+	MinDistance string `json:"minDistance"`
+}
+
+//ResponseFinalFindOffers struct for response list of Offers
+type ResponseFinalFindOffers struct {
+	Offers       []OffersFindPointer `json:"offers"`
+	LastOfferID  *string             `json:"last_offer_id"`
+	LastDistance float64             `json:"last_distance"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`
