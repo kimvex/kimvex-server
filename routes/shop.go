@@ -24,6 +24,7 @@ func Shops() {
 	apiRouteProfile.Use("/shops", ValidateRoute)
 	apiRouteShop.Use("/:shop_id/offers", ValidateRoute)
 	apiRouteShop.Use("/offer/:offer_id", ValidateRoute)
+	apiRouteShop.Use("/offers", ValidateRoute)
 
 	apiRouteShop.Get("/:shop_id", ShopGet)
 	apiRouteShop.Get("/:shop_id/offers", ShopOffers)
@@ -38,6 +39,8 @@ func Shops() {
 	apiRouteBase.Get("/sub_service/:service_id", SubServices)
 
 	apiRouteProfile.Get("/shops", ProfileShop)
+
+	apiRouteShop.Post("/offers", CreateOffer)
 }
 
 //ShopGet Handler for endpoint
@@ -1094,3 +1097,140 @@ func FindOffers(c *fiber.Ctx) {
 		LastDistance: OffersArrPointer[len(OffersArrPointer)-1].Distance,
 	})
 }
+
+//CreateOffer Handler for create offer
+func CreateOffer(c *fiber.Ctx) {
+	UserID := userIDF(c.Get("token"))
+
+	var Query QueryParamsOffer
+
+	if errorParse := c.BodyParser(&Query); errorParse != nil {
+		fmt.Println("Error parsing data", errorParse)
+		c.JSON(ErrorResponse{MESSAGE: "Error al parsear información"})
+		c.Status(400)
+		return
+	}
+
+	var IsOwner IsOwnerShop
+	var Position LocationSQL
+
+	fmt.Println(UserID, Query.ShopID, Query.Title, "?")
+
+	ErrorOwner := sq.Select(
+		"shop_id",
+	).
+		From("shop").
+		Where(
+			"user_id = ? AND shop_id = ? AND status = true",
+			UserID,
+			Query.ShopID,
+		).
+		RunWith(database).
+		QueryRow().
+		Scan(
+			&IsOwner.ShopID,
+		)
+
+	if ErrorOwner != nil {
+		fmt.Println("Not is owner or active shop", ErrorOwner)
+		c.JSON(ErrorResponse{MESSAGE: "Not is owner or active shop"})
+		c.SendStatus(400)
+		return
+	}
+
+	ErrorShop := sq.Select(
+		"lat",
+		"lon",
+	).
+		From("shop").
+		Where("shop_id = ? AND user_id = ?", Query.ShopID, UserID).
+		RunWith(database).
+		QueryRow().
+		Scan(
+			&Position.Lat,
+			&Position.Lon,
+		)
+
+	if ErrorShop != nil {
+		fmt.Println("Not found shop")
+		c.JSON(ErrorResponse{MESSAGE: "Not found shop"})
+		c.SendStatus(400)
+		return
+	}
+
+	id, errorInsert := sq.Insert("offers").
+		Columns(
+			"user_id",
+			"shop_id",
+			"title",
+			"description",
+			"date_init",
+			"date_end",
+			"image_url",
+			"lat",
+			"lon",
+			"active",
+		).
+		Values(
+			UserID,
+			Query.ShopID,
+			Query.Title,
+			Query.Description,
+			Query.DateInit,
+			Query.DateEnd,
+			Query.ImageURL,
+			&Position.Lat,
+			&Position.Lon,
+			0,
+		).
+		RunWith(database).
+		Exec()
+
+	IDLast, _ := id.LastInsertId()
+	fmt.Println("This offer id", IDLast)
+
+	if errorInsert != nil {
+		fmt.Println("Error to save shop", errorInsert)
+	}
+
+	PosLat := Position.Lat.String
+	PosLon := Position.Lon.String
+
+	Lat, errLat := strconv.ParseFloat(PosLat, 64)
+	if errLat != nil {
+		fmt.Println("Error to conver lat", errLat)
+	}
+
+	Lon, errLon := strconv.ParseFloat(PosLon, 64)
+	if errLon != nil {
+		fmt.Println("Error to conver lon", errLon)
+	}
+
+	// IDString := fmt.Sprintf("%s", IDLast)
+	IDString := strconv.FormatInt(IDLast, 10)
+
+	resInsertMongo, errInsertMongo := mongodb.Collection("offers").InsertOne(context.TODO(), bson.M{
+		"offer_id": IDString,
+		"shop_id":  Query.ShopID,
+		"title":    Query.Title,
+		"location": bson.M{
+			"type":        "Point",
+			"coordinates": []float64{Lon, Lat},
+		},
+		"date_init": Query.DateInit,
+		"date_end":  Query.DateEnd,
+		"active":    false,
+	})
+
+	if errInsertMongo != nil {
+		fmt.Println(errInsertMongo, "Error to Insert mongo")
+	}
+
+	IDMongo := resInsertMongo.InsertedID
+
+	fmt.Println(IDMongo, "Id of offer in mongodb")
+
+	c.JSON(SuccessResponseOffer{MESSAGE: "Created offers", OfferID: IDString, Status: 200})
+
+}
+

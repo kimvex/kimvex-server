@@ -603,6 +603,34 @@ type ResponseFinalFindOffers struct {
 	LastDistance float64             `json:"last_distance"`
 }
 
+//IsOwnerShop struct for validate if a user is owner of a shop
+type IsOwnerShop struct {
+	ShopID sql.NullString `json:"shop_id"`
+}
+
+//LocationSQL struct for location SQL
+type LocationSQL struct {
+	Lat sql.NullString `json:"lat"`
+	Lon sql.NullString `json:"lon"`
+}
+
+//SuccessResponseOffer structure for response created offer
+type SuccessResponseOffer struct {
+	OfferID string `json:"offer_id"`
+	MESSAGE string `json:"message"`
+	Status  int    `json:"status"`
+}
+
+//QueryParamsOffer for get offers
+type QueryParamsOffer struct {
+	ShopID      string `json:"shop_id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	DateInit    string `json:"date_init"`
+	DateEnd     string `json:"date_end"`
+	ImageURL    string `json:"image_url"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`
