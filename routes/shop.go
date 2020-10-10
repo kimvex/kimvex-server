@@ -27,6 +27,8 @@ func Shops() {
 	apiRouteShop.Use("/offers", ValidateRoute)
 	apiRouteShop.Use("/offer/:offer_id", ValidateRoute)
 	apiRouteShop.Use("/:shop_id/comment", ValidateRoute)
+	apiRouteShop.Use("/:shop_id/score", ValidateRoute)
+	apiRouteShop.Use("/:shop_id/score/:user_id", ValidateRoute)
 
 	apiRouteShop.Get("/:shop_id", ShopGet)
 	apiRouteShop.Get("/:shop_id/offers", ShopOffers)
@@ -42,6 +44,8 @@ func Shops() {
 
 	apiRouteProfile.Get("/shops", ProfileShop)
 	apiRouteShop.Post("/:shop_id/comment", Comment)
+	apiRouteShop.Post("/:shop_id/score", SetScore)
+	apiRouteShop.Put("/:shop_id/score/:user_id", UpdateScore)
 
 	apiRouteShop.Post("/offers", CreateOffer)
 	apiRouteShop.Put("/offers/:offer_id", UpdateOffer)
@@ -1391,4 +1395,161 @@ func UpdateOffer(c *fiber.Ctx) {
 	fmt.Println(OffersMongo, queryUpdateValue)
 
 	c.JSON(SuccessResponseOfferStatus{MESSAGE: "Success update", Status: 200})
+}
+
+//SetScore set my score to shop
+func SetScore(c *fiber.Ctx) {
+	ShopID := c.Params("shop_id")
+	UserID := userIDF(c.Get("token"))
+
+	var Data ScoreStruct
+
+	if errorParse := c.BodyParser(&Data); errorParse != nil {
+		fmt.Println("Error parsing data", errorParse)
+		c.JSON(ErrorResponse{MESSAGE: "Error al parsear información"})
+		c.Status(400)
+		return
+	}
+
+	if Data.Score <= 0 {
+		fmt.Println("score can't be empty")
+		c.JSON(ErrorResponse{MESSAGE: "Score can't be empty"})
+		c.Status(400)
+		return
+	}
+
+	var Score ScoreSQL
+	var Response ResponseScore
+
+	_, errorInsert := sq.Insert("shop_score_users").
+		Columns(
+			"user_id",
+			"shop_id",
+			"score",
+		).
+		Values(
+			UserID,
+			ShopID,
+			Data.Score,
+		).
+		RunWith(database).
+		Exec()
+
+	if errorInsert != nil {
+		fmt.Println("Error to save score", errorInsert)
+	}
+
+	ErrorScore := sq.Select(
+		"AVG(score) as score",
+	).
+		From("shop_score_users").
+		Where("shop_id = ?", ShopID).
+		RunWith(database).
+		QueryRow().
+		Scan(
+			&Score.Score,
+		)
+
+	if ErrorScore != nil {
+		fmt.Println(ErrorScore, "Error get score")
+		c.JSON(ErrorResponse{MESSAGE: "Problem with get score"})
+		c.SendStatus(400)
+		return
+	}
+
+	queryUpdateValue := sq.Update("shop")
+
+	ScoreFloat, _ := strconv.ParseFloat(Score.Score.String, 64)
+
+	NewScore := fmt.Sprintf("%.0f", ScoreFloat)
+
+	_, ErrorUpdateOffer := queryUpdateValue.
+		Set("score_shop", NewScore).
+		Where("shop_id = ? ", ShopID).
+		RunWith(database).
+		Exec()
+
+	if ErrorUpdateOffer != nil {
+		fmt.Println(ErrorUpdateOffer, "Problem with update score")
+		c.JSON(ErrorResponse{MESSAGE: "Problem with update score"})
+		c.SendStatus(500)
+		return
+	}
+
+	Response.Score = &NewScore
+
+	c.JSON(Response)
+}
+
+//UpdateScore Update my score to shop
+func UpdateScore(c *fiber.Ctx) {
+	ShopID := c.Params("shop_id")
+	UserID := userIDF(c.Get("token"))
+
+	var Data ScoreStruct
+
+	if errorParse := c.BodyParser(&Data); errorParse != nil {
+		fmt.Println("Error parsing data", errorParse)
+		c.JSON(ErrorResponse{MESSAGE: "Error al parsear información"})
+		c.Status(400)
+		return
+	}
+
+	if Data.Score <= 0 {
+		fmt.Println("score can't be empty")
+		c.JSON(ErrorResponse{MESSAGE: "Score can't be empty"})
+		c.Status(400)
+		return
+	}
+
+	var Score ScoreSQL
+
+	_, ErrorUpdateScoreUser := sq.Update("shop_score_users").
+		Set("score", Data.Score).
+		Where("user_id = ? AND shop_id = ?", UserID, ShopID).
+		RunWith(database).
+		Exec()
+
+	if ErrorUpdateScoreUser != nil {
+		fmt.Println("Error to update score", ErrorUpdateScoreUser)
+	}
+
+	ErrorScore := sq.Select(
+		"AVG(score) as score",
+	).
+		From("shop_score_users").
+		Where("shop_id = ?", ShopID).
+		RunWith(database).
+		QueryRow().
+		Scan(
+			&Score.Score,
+		)
+
+	if ErrorScore != nil {
+		fmt.Println(ErrorScore, "Error get score")
+		c.JSON(ErrorResponse{MESSAGE: "Problem with get score"})
+		c.SendStatus(400)
+		return
+	}
+
+	queryUpdateValue := sq.Update("shop")
+
+	ScoreFloat, _ := strconv.ParseFloat(Score.Score.String, 64)
+
+	NewScore := fmt.Sprintf("%.0f", ScoreFloat)
+
+	_, ErrorUpdateScoreShop := queryUpdateValue.
+		Set("score_shop", NewScore).
+		Where("shop_id = ? ", ShopID).
+		RunWith(database).
+		Exec()
+
+	if ErrorUpdateScoreShop != nil {
+		fmt.Println(ErrorUpdateScoreShop, "Problem with update score")
+		c.JSON(ErrorResponse{MESSAGE: "Problem with update score"})
+		c.SendStatus(500)
+		return
+	}
+
+	c.JSON(SuccessResponse{MESSAGE: "Calificación actualizada"})
 }

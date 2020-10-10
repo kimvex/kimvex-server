@@ -653,6 +653,11 @@ type CommentStruct struct {
 	Comment string `json:"comment"`
 }
 
+//ScoreStruct for score set
+type ScoreStruct struct {
+	Score int `json:"score"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`
