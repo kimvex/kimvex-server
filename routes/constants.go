@@ -648,6 +648,11 @@ type QueryParamsOfferUpdate struct {
 	Active      int    `json:"active"`
 }
 
+//CommentStruct for comment set
+type CommentStruct struct {
+	Comment string `json:"comment"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`

@@ -26,6 +26,7 @@ func Shops() {
 	apiRouteShop.Use("/offer/:offer_id", ValidateRoute)
 	apiRouteShop.Use("/offers", ValidateRoute)
 	apiRouteShop.Use("/offer/:offer_id", ValidateRoute)
+	apiRouteShop.Use("/:shop_id/comment", ValidateRoute)
 
 	apiRouteShop.Get("/:shop_id", ShopGet)
 	apiRouteShop.Get("/:shop_id/offers", ShopOffers)
@@ -40,9 +41,11 @@ func Shops() {
 	apiRouteBase.Get("/sub_service/:service_id", SubServices)
 
 	apiRouteProfile.Get("/shops", ProfileShop)
+	apiRouteShop.Post("/:shop_id/comment", Comment)
 
 	apiRouteShop.Post("/offers", CreateOffer)
 	apiRouteShop.Put("/offers/:offer_id", UpdateOffer)
+
 }
 
 //ShopGet Handler for endpoint
@@ -639,11 +642,11 @@ func Comments(c *fiber.Ctx) {
 	}
 
 	for i := 0; i < len(CommentsFromSQL); i++ {
-		CommentPointer.Comment = &CommentFromSQL.Comment.String
-		CommentPointer.CreateDateAt = &CommentFromSQL.CreateDateAt.String
-		CommentPointer.UserID = &CommentFromSQL.UserID.String
-		CommentPointer.Fullname = &CommentFromSQL.Fullname.String
-		CommentPointer.Image = &CommentFromSQL.Image.String
+		CommentPointer.Comment = &CommentsFromSQL[i].Comment.String
+		CommentPointer.CreateDateAt = &CommentsFromSQL[i].CreateDateAt.String
+		CommentPointer.UserID = &CommentsFromSQL[i].UserID.String
+		CommentPointer.Fullname = &CommentsFromSQL[i].Fullname.String
+		CommentPointer.Image = &CommentsFromSQL[i].Image.String
 
 		CommentsPointer = append(CommentsPointer, CommentPointer)
 	}
@@ -926,6 +929,44 @@ func FindShops(c *fiber.Ctx) {
 		LastShopID:   ShopArrPointer[len(ShopArrPointer)-1].ShopID,
 		LastDistance: ShopArrPointer[len(ShopArrPointer)-1].Distance,
 	})
+}
+
+//Comment Handle for insert comments
+func Comment(c *fiber.Ctx) {
+	ShopID := c.Params("shop_id")
+	UserID := userIDF(c.Get("token"))
+
+	var Data CommentStruct
+
+	if errorParse := c.BodyParser(&Data); errorParse != nil {
+		fmt.Println("Error parsing data", errorParse)
+		c.JSON(ErrorResponse{MESSAGE: "Error al parsear información"})
+		c.Status(400)
+		return
+	}
+
+	id, errorInsert := sq.Insert("shop_comments").
+		Columns(
+			"user_id",
+			"shop_id",
+			"comment",
+		).
+		Values(
+			UserID,
+			ShopID,
+			Data.Comment,
+		).
+		RunWith(database).
+		Exec()
+
+	if errorInsert != nil {
+		fmt.Println("Error to save shop", errorInsert)
+	}
+
+	IDLast, _ := id.LastInsertId()
+	IDS := strconv.FormatInt(IDLast, 10)
+
+	c.JSON(SuccessResponse{MESSAGE: IDS})
 }
 
 //FindOffers Handler for get Offers
