@@ -25,6 +25,7 @@ func Shops() {
 	apiRouteShop.Use("/:shop_id/offers", ValidateRoute)
 	apiRouteShop.Use("/offer/:offer_id", ValidateRoute)
 	apiRouteShop.Use("/offers", ValidateRoute)
+	apiRouteShop.Use("/offer/:offer_id", ValidateRoute)
 
 	apiRouteShop.Get("/:shop_id", ShopGet)
 	apiRouteShop.Get("/:shop_id/offers", ShopOffers)
@@ -41,6 +42,7 @@ func Shops() {
 	apiRouteProfile.Get("/shops", ProfileShop)
 
 	apiRouteShop.Post("/offers", CreateOffer)
+	apiRouteShop.Put("/offers/:offer_id", UpdateOffer)
 }
 
 //ShopGet Handler for endpoint
@@ -1234,3 +1236,118 @@ func CreateOffer(c *fiber.Ctx) {
 
 }
 
+//UpdateOffer Handler for update offer
+// https://github.com/mongodb/mongo-go-driver/blob/master/mongo/crud_examples_test.go
+func UpdateOffer(c *fiber.Ctx) {
+	UserID := userIDF(c.Get("token"))
+	OfferID := c.Params("offer_id")
+
+	var Query QueryParamsOfferUpdate
+	var IsOwner IsOwnerShop
+	var OffersMongo bson.D
+
+	if errorParse := c.BodyParser(&Query); errorParse != nil {
+		fmt.Println("Error parsing data", errorParse)
+		c.JSON(ErrorResponse{MESSAGE: "Error al parsear información"})
+		c.Status(400)
+		return
+	}
+
+	ErrorOwner := sq.Select(
+		"shop_id",
+	).
+		From("shop").
+		Where(
+			"user_id = ? AND shop_id = ? AND status = true",
+			UserID,
+			Query.ShopID,
+		).
+		RunWith(database).
+		QueryRow().
+		Scan(
+			&IsOwner.ShopID,
+		)
+
+	if ErrorOwner != nil {
+		fmt.Println("Not is owner or active shop", ErrorOwner)
+		c.JSON(ErrorResponse{MESSAGE: "Not is owner or active shop"})
+		c.SendStatus(400)
+		return
+	}
+
+	queryUpdateValue := sq.Update("offers")
+
+	if len(Query.Title) > 0 {
+		queryUpdateValue = queryUpdateValue.Set("title", Query.Title)
+		OffersMongo = append(OffersMongo, bson.E{"title", Query.Title})
+	}
+
+	if len(Query.Description) > 0 {
+		queryUpdateValue = queryUpdateValue.Set("description", Query.Description)
+		OffersMongo = append(OffersMongo, bson.E{"description", Query.Description})
+	}
+
+	if len(Query.DateInit) > 0 {
+		queryUpdateValue = queryUpdateValue.Set("date_init", Query.DateInit)
+		OffersMongo = append(OffersMongo, bson.E{"date_init", Query.DateInit})
+	}
+
+	if len(Query.DateEnd) > 0 {
+		queryUpdateValue = queryUpdateValue.Set("date_end", Query.DateEnd)
+		OffersMongo = append(OffersMongo, bson.E{"date_end", Query.DateEnd})
+	}
+
+	if len(Query.ImageURL) > 0 {
+		queryUpdateValue = queryUpdateValue.Set("image_url", Query.ImageURL)
+		OffersMongo = append(OffersMongo, bson.E{"image_url", Query.ImageURL})
+	}
+
+	if Query.Active >= 0 && Query.Active <= 1 {
+		queryUpdateValue = queryUpdateValue.Set("active", Query.Active)
+
+		Active := false
+		if Query.Active == 0 {
+			Active = false
+		} else {
+			Active = true
+		}
+
+		OffersMongo = append(OffersMongo, bson.E{"active", Active})
+	}
+
+	_, ErrorUpdateOffer := queryUpdateValue.
+		Where("offers_id = ? AND user_id = ? AND shop_id = ?", OfferID, UserID, Query.ShopID).
+		RunWith(database).
+		Exec()
+
+	if ErrorUpdateOffer != nil {
+		fmt.Println(ErrorUpdateOffer, "Problem with update offer")
+		c.JSON(ErrorResponse{MESSAGE: "Problem with update offer"})
+		c.SendStatus(500)
+		return
+	}
+
+	opts := options.Update().SetUpsert(true)
+	filter := bson.D{{"offer_id", OfferID}}
+	update := bson.D{
+		{"$set", OffersMongo},
+	}
+
+	resultMongoOffers, errOfferMongo := mongodb.Collection("offers").UpdateOne(context.TODO(), filter, update, opts)
+	fmt.Println(update, ".....", filter)
+	if errOfferMongo != nil {
+		fmt.Println("promblem with update offer in mongodb")
+	}
+
+	if resultMongoOffers.MatchedCount != 0 {
+		fmt.Println("matched and replaced an existing document")
+		return
+	}
+	if resultMongoOffers.UpsertedCount != 0 {
+		fmt.Printf("inserted a new document with ID %v\n", resultMongoOffers.UpsertedID)
+	}
+
+	fmt.Println(OffersMongo, queryUpdateValue)
+
+	c.JSON(SuccessResponseOfferStatus{MESSAGE: "Success update", Status: 200})
+}

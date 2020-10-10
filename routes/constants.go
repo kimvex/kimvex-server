@@ -69,7 +69,7 @@ type UpdateProfile struct {
 	NewPassword string `json:"new_password"`
 	Fullname    string `json:"fullname"`
 	Age         string `json:"age"`
-	Phone       int    `json:"phone"`
+	Phone       string `json:"phone"`
 	Gender      string `json:"gender"`
 	Address     string `json:"address"`
 	URLImage    string `json:"url_image"`
@@ -621,6 +621,12 @@ type SuccessResponseOffer struct {
 	Status  int    `json:"status"`
 }
 
+//SuccessResponseOfferStatus structure for response offer
+type SuccessResponseOfferStatus struct {
+	MESSAGE string `json:"message"`
+	Status  int    `json:"status"`
+}
+
 //QueryParamsOffer for get offers
 type QueryParamsOffer struct {
 	ShopID      string `json:"shop_id"`
@@ -629,6 +635,17 @@ type QueryParamsOffer struct {
 	DateInit    string `json:"date_init"`
 	DateEnd     string `json:"date_end"`
 	ImageURL    string `json:"image_url"`
+}
+
+//QueryParamsOfferUpdate struct for update offer
+type QueryParamsOfferUpdate struct {
+	ShopID      string `json:"shop_id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	DateInit    string `json:"date_init"`
+	DateEnd     string `json:"date_end"`
+	ImageURL    string `json:"image_url"`
+	Active      int    `json:"active"`
 }
 
 //ValidateExistUser struct

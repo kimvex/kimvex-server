@@ -336,7 +336,7 @@ func UpdateProfileEnd(c *fiber.Ctx) {
 		queryUpdateValue = queryUpdateValue.Set("age", profileSave.Age)
 	}
 
-	if profileSave.Phone > 0 {
+	if len(profileSave.Phone) > 0 {
 		queryUpdateValue = queryUpdateValue.Set("phone", profileSave.Phone)
 	}
 
