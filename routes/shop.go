@@ -1792,6 +1792,8 @@ func UpdatePage(c *fiber.Ctx) {
 
 	var DataPage PagePut
 	var IsOwner IsOwnerShop
+	var Subdomain ValidateDomains
+	var Domain ValidateDomains
 
 	if errorParse := c.BodyParser(&DataPage); errorParse != nil {
 		fmt.Println("Error parsing data", errorParse)
@@ -1851,11 +1853,65 @@ func UpdatePage(c *fiber.Ctx) {
 	}
 
 	if len(DataPage.Subdomain) > 0 {
-		UpdatePageSQL = UpdatePageSQL.Set("subdomain", DataPage.Subdomain)
+		ErrorSubdomain := sq.Select(
+			"shop_id",
+			"subdomain",
+		).
+			From("pages").
+			Where("subdomain = ?", DataPage.Subdomain).
+			RunWith(database).
+			QueryRow().
+			Scan(
+				&Subdomain.ShopID,
+				&Subdomain.Subdomain,
+			)
+
+		if ErrorSubdomain != nil {
+			if len(Subdomain.ShopID.String) > 0 {
+				fmt.Println("Error to validate subdomian or is used", ErrorSubdomain)
+				c.JSON(ResponseSubdomain{Subdomain: false})
+				c.SendStatus(400)
+				return
+			}
+
+			UpdatePageSQL = UpdatePageSQL.Set("subdomain", DataPage.Subdomain)
+		} else {
+			fmt.Println("Error to validate subdomian or is used", ErrorSubdomain)
+			c.JSON(ResponseSubdomain{Subdomain: false})
+			c.SendStatus(400)
+			return
+		}
 	}
 
 	if len(DataPage.Domain) > 0 {
-		UpdatePageSQL = UpdatePageSQL.Set("domain", DataPage.Domain)
+		ErrorDomain := sq.Select(
+			"shop_id",
+			"domain",
+		).
+			From("pages").
+			Where("domain = ?", DataPage.Domain).
+			RunWith(database).
+			QueryRow().
+			Scan(
+				&Domain.ShopID,
+				&Domain.Domain,
+			)
+
+		if ErrorDomain != nil {
+			if len(Domain.ShopID.String) > 0 {
+				fmt.Println("Error to validate subdomian or is used", ErrorDomain)
+				c.JSON(ResponseDomain{Domain: false})
+				c.SendStatus(400)
+				return
+			}
+
+			UpdatePageSQL = UpdatePageSQL.Set("domain", DataPage.Domain)
+		} else {
+			fmt.Println("Error to validate domian or is used", ErrorDomain)
+			c.JSON(ResponseDomain{Domain: false})
+			c.SendStatus(400)
+			return
+		}
 	}
 
 	_, ErrorUpdatePage := UpdatePageSQL.

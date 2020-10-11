@@ -670,6 +670,23 @@ type PagePut struct {
 	Domain           string `json:"domain"`
 }
 
+//ValidateDomains struct for validate domains and subdomains
+type ValidateDomains struct {
+	ShopID    sql.NullString `json:"shop_id"`
+	Subdomain sql.NullString `json:"subdomain"`
+	Domain    sql.NullString `json:"domain"`
+}
+
+//ResponseSubdomain for response of validate subdomain
+type ResponseSubdomain struct {
+	Subdomain bool `json:"subdomain"`
+}
+
+//ResponseDomain for response of validate domain
+type ResponseDomain struct {
+	Domain bool `json:"domain"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`
