@@ -33,6 +33,8 @@ func Shops() {
 	apiRouteShop.Use("/lock/:shop_id", ValidateRoute)
 	apiRouteShop.Use("/unlock/:shop_id", ValidateRoute)
 	apiRouteShop.Use("/:shop_id/update_page/:page_id", ValidateRoute)
+	apiRouteShop.Use("/:shop_id/active_page/:page_id", ValidateRoute)
+	apiRouteShop.Use("/:shop_id/deactivate_page/:page_id", ValidateRoute)
 
 	apiRouteShop.Get("/:shop_id", ShopGet)
 	apiRouteShop.Get("/:shop_id/offers", ShopOffers)
@@ -53,6 +55,8 @@ func Shops() {
 	apiRouteShop.Put("/lock/:shop_id", LockShop)
 	apiRouteShop.Put("/unlock/:shop_id", UnlockShop)
 	apiRouteShop.Put("/:shop_id/update_page/:page_id", UpdatePage)
+	apiRouteShop.Put("/:shop_id/active_page/:page_id", ActivePage)
+	apiRouteShop.Put("/:shop_id/deactivate_page/:page_id", DeactivePage)
 
 	apiRouteShop.Post("/offers", CreateOffer)
 	apiRouteShop.Put("/offers/:offer_id", UpdateOffer)
@@ -1862,6 +1866,98 @@ func UpdatePage(c *fiber.Ctx) {
 	if ErrorUpdatePage != nil {
 		fmt.Println(ErrorUpdatePage, "Problem with update information page")
 		c.JSON(ErrorResponse{MESSAGE: "Problem with update information page"})
+		c.SendStatus(500)
+		return
+	}
+
+	c.JSON(SuccessResponse{MESSAGE: "Actualizado"})
+}
+
+//ActivePage Handler for active pages
+func ActivePage(c *fiber.Ctx) {
+	ShopID := c.Params("shop_id")
+	PageID := c.Params("page_id")
+	UserID := userIDF(c.Get("token"))
+
+	var IsOwner IsOwnerShop
+
+	ErrorOwner := sq.Select(
+		"shop_id",
+	).
+		From("shop").
+		Where(
+			"user_id = ? AND shop_id = ? AND status = 1",
+			UserID,
+			ShopID,
+		).
+		RunWith(database).
+		QueryRow().
+		Scan(
+			&IsOwner.ShopID,
+		)
+
+	if ErrorOwner != nil {
+		fmt.Println("Not is owner or active shop", ErrorOwner)
+		c.JSON(ErrorResponse{MESSAGE: "Not is owner or active shop"})
+		c.SendStatus(400)
+		return
+	}
+
+	_, ErrorActivePage := sq.Update("pages").
+		Set("active", true).
+		Where("pages_id = ? ", PageID).
+		RunWith(database).
+		Exec()
+
+	if ErrorActivePage != nil {
+		fmt.Println(ErrorActivePage, "Problem with Active page")
+		c.JSON(ErrorResponse{MESSAGE: "Problem with Active page"})
+		c.SendStatus(500)
+		return
+	}
+
+	c.JSON(SuccessResponse{MESSAGE: "Actualizado"})
+}
+
+//DeactivePage Handler for active pages
+func DeactivePage(c *fiber.Ctx) {
+	ShopID := c.Params("shop_id")
+	PageID := c.Params("page_id")
+	UserID := userIDF(c.Get("token"))
+
+	var IsOwner IsOwnerShop
+
+	ErrorOwner := sq.Select(
+		"shop_id",
+	).
+		From("shop").
+		Where(
+			"user_id = ? AND shop_id = ? AND status = 1",
+			UserID,
+			ShopID,
+		).
+		RunWith(database).
+		QueryRow().
+		Scan(
+			&IsOwner.ShopID,
+		)
+
+	if ErrorOwner != nil {
+		fmt.Println("Not is owner or active shop", ErrorOwner)
+		c.JSON(ErrorResponse{MESSAGE: "Not is owner or active shop"})
+		c.SendStatus(400)
+		return
+	}
+
+	_, ErrorActivePage := sq.Update("pages").
+		Set("active", false).
+		Where("pages_id = ? ", PageID).
+		RunWith(database).
+		Exec()
+
+	if ErrorActivePage != nil {
+		fmt.Println(ErrorActivePage, "Problem with Active page")
+		c.JSON(ErrorResponse{MESSAGE: "Problem with Active page"})
 		c.SendStatus(500)
 		return
 	}
