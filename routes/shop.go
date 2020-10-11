@@ -3,6 +3,7 @@ package routes
 import (
 	"context"
 	"fmt"
+	"log"
 	"sort"
 	"strconv"
 	"strings"
@@ -29,6 +30,8 @@ func Shops() {
 	apiRouteShop.Use("/:shop_id/comment", ValidateRoute)
 	apiRouteShop.Use("/:shop_id/score", ValidateRoute)
 	apiRouteShop.Use("/:shop_id/score/:user_id", ValidateRoute)
+	apiRouteShop.Use("/lock/:shop_id", ValidateRoute)
+	apiRouteShop.Use("/unlock/:shop_id", ValidateRoute)
 
 	apiRouteShop.Get("/:shop_id", ShopGet)
 	apiRouteShop.Get("/:shop_id/offers", ShopOffers)
@@ -46,6 +49,8 @@ func Shops() {
 	apiRouteShop.Post("/:shop_id/comment", Comment)
 	apiRouteShop.Post("/:shop_id/score", SetScore)
 	apiRouteShop.Put("/:shop_id/score/:user_id", UpdateScore)
+	apiRouteShop.Put("/lock/:shop_id", LockShop)
+	apiRouteShop.Put("/unlock/:shop_id", UnlockShop)
 
 	apiRouteShop.Post("/offers", CreateOffer)
 	apiRouteShop.Put("/offers/:offer_id", UpdateOffer)
@@ -1379,7 +1384,7 @@ func UpdateOffer(c *fiber.Ctx) {
 	}
 
 	resultMongoOffers, errOfferMongo := mongodb.Collection("offers").UpdateOne(context.TODO(), filter, update, opts)
-	fmt.Println(update, ".....", filter)
+
 	if errOfferMongo != nil {
 		fmt.Println("promblem with update offer in mongodb")
 	}
@@ -1552,4 +1557,223 @@ func UpdateScore(c *fiber.Ctx) {
 	}
 
 	c.JSON(SuccessResponse{MESSAGE: "Calificación actualizada"})
+}
+
+//LockShop Handler for lock shop
+func LockShop(c *fiber.Ctx) {
+	ShopID := c.Params("shop_id")
+	UserID := userIDF(c.Get("token"))
+
+	var IsOwner IsOwnerShop
+	var ShopMongo bson.D
+	var OffersMongo bson.D
+
+	ErrorOwner := sq.Select(
+		"shop_id",
+	).
+		From("shop").
+		Where(
+			"user_id = ? AND shop_id = ? AND status = 1",
+			UserID,
+			ShopID,
+		).
+		RunWith(database).
+		QueryRow().
+		Scan(
+			&IsOwner.ShopID,
+		)
+
+	if ErrorOwner != nil {
+		fmt.Println("Not is owner or active shop", ErrorOwner)
+		c.JSON(ErrorResponse{MESSAGE: "Not is owner or active shop"})
+		c.SendStatus(400)
+		return
+	}
+
+	_, ErrorLock := sq.Update("shop").
+		Set("status", 0).
+		Set("lock_shop", 1).
+		Where("user_id = ? AND shop_id = ?", UserID, ShopID).
+		RunWith(database).
+		Exec()
+
+	if ErrorLock != nil {
+		fmt.Println("Problem with lock shop", ErrorLock)
+		c.JSON(ErrorResponse{MESSAGE: "Problem with lock shop"})
+		c.SendStatus(400)
+		return
+	}
+
+	_, ErrorLockOffer := sq.Update("offers").
+		Set("active", 0).
+		Where("user_id = ? AND shop_id = ?", UserID, ShopID).
+		RunWith(database).
+		Exec()
+
+	if ErrorLockOffer != nil {
+		fmt.Println("Problem with lock offer", ErrorLockOffer)
+		c.JSON(ErrorResponse{MESSAGE: "Problem with lock offer"})
+		c.SendStatus(400)
+		return
+	}
+
+	_, ErrorLockPage := sq.Update("pages").
+		Set("active", 0).
+		Where("shop_id = ?", ShopID).
+		RunWith(database).
+		Exec()
+
+	if ErrorLockPage != nil {
+		fmt.Println("Problem with lock page", ErrorLockPage)
+		c.JSON(ErrorResponse{MESSAGE: "Problem with lock page"})
+		c.SendStatus(400)
+		return
+	}
+
+	opts := options.Update().SetUpsert(true)
+	filter := bson.D{{"shop_id", ShopID}}
+	ShopMongo = append(ShopMongo, bson.E{"status", false})
+
+	update := bson.D{
+		{"$set", ShopMongo},
+	}
+
+	ShopMongoLock, ErrorLockMongo := mongodb.Collection("shop").UpdateOne(context.TODO(), filter, update, opts)
+
+	if ErrorLockMongo != nil {
+		fmt.Println("promblem with lock shop in mongodb")
+	}
+
+	if ShopMongoLock.MatchedCount != 0 {
+		fmt.Println("matched and replaced an existing document")
+	}
+	if ShopMongoLock.UpsertedCount != 0 {
+		fmt.Printf("inserted a new document with ID %v\n", ShopMongoLock.UpsertedID)
+	}
+
+	filterOffers := bson.D{{"shop_id", ShopID}}
+	OffersMongo = append(OffersMongo, bson.E{"active", false})
+	updateOffers := bson.D{
+		{"$set", OffersMongo},
+	}
+
+	MongoLockOffers, MongoOffersLockError := mongodb.Collection("offers").UpdateMany(context.TODO(), filterOffers, updateOffers)
+	if MongoOffersLockError != nil {
+		log.Println("Problem with update lock offers", MongoOffersLockError)
+	}
+
+	if MongoLockOffers.MatchedCount != 0 {
+		fmt.Println("matched and replaced an existing document")
+	}
+
+	c.JSON(SuccessResponse{MESSAGE: "Tienda desabilitada"})
+}
+
+//UnlockShop Handler for lock shop
+func UnlockShop(c *fiber.Ctx) {
+	ShopID := c.Params("shop_id")
+	UserID := userIDF(c.Get("token"))
+
+	var IsOwner IsOwnerShop
+	var ShopMongo bson.D
+	var OffersMongo bson.D
+
+	ErrorOwner := sq.Select(
+		"shop_id",
+	).
+		From("shop").
+		Where(
+			"user_id = ? AND shop_id = ? AND status = 0",
+			UserID,
+			ShopID,
+		).
+		RunWith(database).
+		QueryRow().
+		Scan(
+			&IsOwner.ShopID,
+		)
+
+	if ErrorOwner != nil {
+		fmt.Println("Not is owner or active shop", ErrorOwner)
+		c.JSON(ErrorResponse{MESSAGE: "Not is owner or active shop"})
+		c.SendStatus(400)
+		return
+	}
+
+	_, ErrorUnlok := sq.Update("shop").
+		Set("status", 1).
+		Set("lock_shop", 0).
+		Where("user_id = ? AND shop_id = ?", UserID, ShopID).
+		RunWith(database).
+		Exec()
+
+	if ErrorUnlok != nil {
+		fmt.Println("Problem with Unlok shop", ErrorUnlok)
+		c.JSON(ErrorResponse{MESSAGE: "Problem with Unlok shop"})
+		c.SendStatus(400)
+		return
+	}
+
+	_, ErrorUnlokOffer := sq.Update("offers").
+		Set("active", 1).
+		Where("user_id = ? AND shop_id = ?", UserID, ShopID).
+		RunWith(database).
+		Exec()
+
+	if ErrorUnlokOffer != nil {
+		fmt.Println("Problem with Unlok offer", ErrorUnlokOffer)
+		c.JSON(ErrorResponse{MESSAGE: "Problem with Unlok offer"})
+		c.SendStatus(400)
+		return
+	}
+
+	_, ErrorUnlokPage := sq.Update("pages").
+		Set("active", 1).
+		Where("shop_id = ?", ShopID).
+		RunWith(database).
+		Exec()
+
+	if ErrorUnlokPage != nil {
+		fmt.Println("Problem with Unlok page", ErrorUnlokPage)
+		c.JSON(ErrorResponse{MESSAGE: "Problem with Unlok page"})
+		c.SendStatus(400)
+		return
+	}
+
+	opts := options.Update().SetUpsert(true)
+	filter := bson.D{{"shop_id", ShopID}}
+	ShopMongo = append(ShopMongo, bson.E{"status", true})
+	update := bson.D{
+		{"$set", ShopMongo},
+	}
+
+	ShopMongoUnlok, ErrorUnlokMongo := mongodb.Collection("shop").UpdateOne(context.TODO(), filter, update, opts)
+
+	if ErrorUnlokMongo != nil {
+		fmt.Println("promblem with Unlok shop in mongodb")
+	}
+
+	if ShopMongoUnlok.MatchedCount != 0 {
+		fmt.Println("matched and replaced an existing document")
+	}
+	if ShopMongoUnlok.UpsertedCount != 0 {
+		fmt.Printf("inserted a new document with ID %v\n", ShopMongoUnlok.UpsertedID)
+	}
+
+	filterOffers := bson.D{{"shop_id", ShopID}}
+	OffersMongo = append(OffersMongo, bson.E{"active", true})
+	updateOffers := bson.D{
+		{"$set", OffersMongo},
+	}
+
+	MongoUnlokOffers, MongoOffersUnlokError := mongodb.Collection("offers").UpdateMany(context.TODO(), filterOffers, updateOffers)
+	if MongoOffersUnlokError != nil {
+		log.Println("Problem with update Unlok offers", MongoOffersUnlokError)
+	}
+
+	if MongoUnlokOffers.MatchedCount != 0 {
+		fmt.Println("matched and replaced an existing document")
+	}
+
+	c.JSON(SuccessResponse{MESSAGE: "Tienda desabilitada"})
 }
