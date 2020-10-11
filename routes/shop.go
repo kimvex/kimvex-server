@@ -1834,8 +1834,6 @@ func UpdatePage(c *fiber.Ctx) {
 		UpdatePageSQL = UpdatePageSQL.Set("style_sheets", DataPage.StyleSheets)
 	}
 
-	fmt.Println(DataPage.ActiveDays, "como es eso?")
-
 	if DataPage.ActiveDays != nil {
 		UpdatePageSQL = UpdatePageSQL.Set("active_days", DataPage.ActiveDays)
 	}
