@@ -32,6 +32,7 @@ func Shops() {
 	apiRouteShop.Use("/:shop_id/score/:user_id", ValidateRoute)
 	apiRouteShop.Use("/lock/:shop_id", ValidateRoute)
 	apiRouteShop.Use("/unlock/:shop_id", ValidateRoute)
+	apiRouteShop.Use("/:shop_id/update_page/:page_id", ValidateRoute)
 
 	apiRouteShop.Get("/:shop_id", ShopGet)
 	apiRouteShop.Get("/:shop_id/offers", ShopOffers)
@@ -51,6 +52,7 @@ func Shops() {
 	apiRouteShop.Put("/:shop_id/score/:user_id", UpdateScore)
 	apiRouteShop.Put("/lock/:shop_id", LockShop)
 	apiRouteShop.Put("/unlock/:shop_id", UnlockShop)
+	apiRouteShop.Put("/:shop_id/update_page/:page_id", UpdatePage)
 
 	apiRouteShop.Post("/offers", CreateOffer)
 	apiRouteShop.Put("/offers/:offer_id", UpdateOffer)
@@ -1776,4 +1778,93 @@ func UnlockShop(c *fiber.Ctx) {
 	}
 
 	c.JSON(SuccessResponse{MESSAGE: "Tienda desabilitada"})
+}
+
+//UpdatePage Handler for change page information
+func UpdatePage(c *fiber.Ctx) {
+	ShopID := c.Params("shop_id")
+	PageID := c.Params("page_id")
+	UserID := userIDF(c.Get("token"))
+
+	var DataPage PagePut
+	var IsOwner IsOwnerShop
+
+	if errorParse := c.BodyParser(&DataPage); errorParse != nil {
+		fmt.Println("Error parsing data", errorParse)
+		c.JSON(ErrorResponse{MESSAGE: "Error al parsear información"})
+		c.Status(400)
+		return
+	}
+
+	ErrorOwner := sq.Select(
+		"shop_id",
+	).
+		From("shop").
+		Where(
+			"user_id = ? AND shop_id = ? AND status = 1",
+			UserID,
+			ShopID,
+		).
+		RunWith(database).
+		QueryRow().
+		Scan(
+			&IsOwner.ShopID,
+		)
+
+	if ErrorOwner != nil {
+		fmt.Println("Not is owner or active shop", ErrorOwner)
+		c.JSON(ErrorResponse{MESSAGE: "Not is owner or active shop"})
+		c.SendStatus(400)
+		return
+	}
+
+	UpdatePageSQL := sq.Update("pages")
+
+	if DataPage.TemplateType != nil {
+		UpdatePageSQL = UpdatePageSQL.Set("template_type", DataPage.TemplateType)
+	}
+
+	if DataPage.StyleSheets != nil {
+		UpdatePageSQL = UpdatePageSQL.Set("style_sheets", DataPage.StyleSheets)
+	}
+
+	fmt.Println(DataPage.ActiveDays, "como es eso?")
+
+	if DataPage.ActiveDays != nil {
+		UpdatePageSQL = UpdatePageSQL.Set("active_days", DataPage.ActiveDays)
+	}
+
+	if DataPage.ImagesDays != nil {
+		UpdatePageSQL = UpdatePageSQL.Set("images_days", DataPage.ImagesDays)
+	}
+
+	if DataPage.OffersActive != nil {
+		UpdatePageSQL = UpdatePageSQL.Set("offers_active", DataPage.OffersActive)
+	}
+
+	if DataPage.AcceptCardActive != nil {
+		UpdatePageSQL = UpdatePageSQL.Set("accept_card_active", DataPage.AcceptCardActive)
+	}
+
+	if len(DataPage.Subdomain) > 0 {
+		UpdatePageSQL = UpdatePageSQL.Set("subdomain", DataPage.Subdomain)
+	}
+
+	if len(DataPage.Domain) > 0 {
+		UpdatePageSQL = UpdatePageSQL.Set("domain", DataPage.Domain)
+	}
+
+	_, ErrorUpdatePage := UpdatePageSQL.
+		Where("pages_id = ? ", PageID).
+		RunWith(database).
+		Exec()
+
+	if ErrorUpdatePage != nil {
+		fmt.Println(ErrorUpdatePage, "Problem with update information page")
+		c.JSON(ErrorResponse{MESSAGE: "Problem with update information page"})
+		c.SendStatus(500)
+		return
+	}
+
+	c.JSON(SuccessResponse{MESSAGE: "Actualizado"})
 }

@@ -658,6 +658,18 @@ type ScoreStruct struct {
 	Score int `json:"score"`
 }
 
+//PagePut struct for infomation page
+type PagePut struct {
+	TemplateType     *int   `json:"template_type"`
+	StyleSheets      *int   `json:"style_sheets"`
+	ActiveDays       *int   `json:"active_days"`
+	ImagesDays       *int   `json:"images_days"`
+	OffersActive     *int   `json:"offers_active"`
+	AcceptCardActive *int   `json:"accept_card_active"`
+	Subdomain        string `json:"subdomain"`
+	Domain           string `json:"domain"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`
