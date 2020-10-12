@@ -42,6 +42,7 @@ func Shops() {
 	apiRouteImages.Use("/shop/cover", ValidateRoute)
 	apiRouteImages.Use("/shop/logo", ValidateRoute)
 	apiRouteImages.Use("/avatar", ValidateRoute)
+	// apiRouteShop.Use("/", ValidateRoute)
 
 	apiRouteShop.Get("/:shop_id", ShopGet)
 	apiRouteShop.Get("/:shop_id/offers", ShopOffers)
@@ -68,6 +69,7 @@ func Shops() {
 	apiRouteImages.Post("/shop/cover", UploadImagesShop)
 	apiRouteImages.Post("/shop/logo", UploadLogo)
 	apiRouteImages.Post("/avatar", UploadAvatar)
+	apiRouteShop.Post("/", ValidateRoute, CreateShop)
 
 	apiRouteShop.Post("/offers", CreateOffer)
 	apiRouteShop.Put("/offers/:offer_id", UpdateOffer)
@@ -2067,4 +2069,175 @@ func UploadAvatar(c *fiber.Ctx) {
 	image := helper.UploadImg(file, "avatar")
 
 	c.JSON(ResponseResultSimple{Result: image.URL})
+}
+
+//CreateShop Hanlder for create shop
+func CreateShop(c *fiber.Ctx) {
+	UserID := userIDF(c.Get("token"))
+
+	var Shop DataShop
+	var Services ServiceNames
+
+	if errorParse := c.BodyParser(&Shop); errorParse != nil {
+		fmt.Println("Error parsing data", errorParse)
+		c.JSON(ErrorResponse{MESSAGE: "Error al parsear información"})
+		c.Status(400)
+		return
+	}
+
+	ListCards := "["
+
+	for i := 0; i < len(Shop.ListCards); i++ {
+		if len(Shop.ListCards)-1 == i {
+			ListCards = fmt.Sprintf(`%s"%v"`, ListCards, Shop.ListCards[i])
+		} else {
+			ListCards = fmt.Sprintf(`%s"%v",`, ListCards, Shop.ListCards[i])
+		}
+	}
+
+	ListCards = fmt.Sprintf(`%s]`, ListCards)
+
+	ShopID, errorInsertShop := sq.Insert("shop").
+		Columns(
+			"user_id",
+			"shop_name",
+			"address",
+			"phone",
+			"phone2",
+			"description",
+			"cover_image",
+			"accept_card",
+			"list_cards",
+			"lat",
+			"lon",
+			"score_shop",
+			"logo",
+			"service_type_id",
+			"sub_service_type_id",
+			"status",
+		).
+		Values(
+			UserID,
+			Shop.ShopName,
+			Shop.Address,
+			Shop.Phone,
+			Shop.Phone2,
+			Shop.Description,
+			Shop.CoverImage,
+			Shop.AcceptCard,
+			ListCards,
+			Shop.Lat,
+			Shop.Lon,
+			0,
+			Shop.Logo,
+			Shop.ServiceTypeID,
+			Shop.SubServiceTypeID,
+			false,
+		).
+		RunWith(database).
+		Exec()
+
+	if errorInsertShop != nil {
+		fmt.Println("Error to save shop", errorInsertShop)
+	}
+
+	IDLastShop, _ := ShopID.LastInsertId()
+
+	_, errorInsertPages := sq.Insert("pages").
+		Columns(
+			"shop_id",
+		).
+		Values(
+			IDLastShop,
+		).
+		RunWith(database).
+		Exec()
+
+	if errorInsertPages != nil {
+		fmt.Println("Error to save page", errorInsertPages)
+	}
+
+	ErrorService := sq.Select(
+		"sub_service_name",
+		"service_name",
+	).
+		From("sub_service_type").
+		LeftJoin("service_type on sub_service_type.service_type_id = service_type.service_type_id").
+		Where("sub_service_type.sub_service_type_id = ? AND sub_service_type.service_type_id = ? ", Shop.SubServiceTypeID, Shop.ServiceTypeID).
+		RunWith(database).
+		QueryRow().
+		Scan(
+			&Services.SubServiceName,
+			&Services.ServiceName,
+		)
+
+	if ErrorService != nil {
+		fmt.Println("Error to get service names", ErrorService)
+	}
+
+	for i := 0; i < len(Shop.ListImages); i++ {
+		_, errorInsertShop := sq.Insert("images_shop").
+			Columns(
+				"url_image",
+				"shop_id",
+			).
+			Values(
+				Shop.ListImages[i],
+				IDLastShop,
+			).
+			RunWith(database).
+			Exec()
+		if errorInsertShop != nil {
+			fmt.Println("Problem to insert url", errorInsertShop)
+		}
+	}
+
+	_, errorInsertSchedules := sq.Insert("shop_schedules").
+		Columns(
+			"LUN",
+			"MAR",
+			"MIE",
+			"JUE",
+			"VIE",
+			"SAB",
+			"DOM",
+			"shop_id",
+		).
+		Values(
+			Shop.ShopSchedules[0],
+			Shop.ShopSchedules[1],
+			Shop.ShopSchedules[2],
+			Shop.ShopSchedules[3],
+			Shop.ShopSchedules[4],
+			Shop.ShopSchedules[5],
+			Shop.ShopSchedules[6],
+			IDLastShop,
+		).
+		RunWith(database).
+		Exec()
+
+	if errorInsertSchedules != nil {
+		fmt.Println("Problem with insert ShopSchedules", errorInsertSchedules)
+	}
+
+	IDSInt := strconv.FormatInt(IDLastShop, 10)
+	IDString := fmt.Sprintf("%s", IDSInt)
+
+	_, errInsertMongo := mongodb.Collection("shop").InsertOne(context.TODO(), bson.M{
+		"name":    Shop.ShopName,
+		"shop_id": IDString,
+		"location": bson.M{
+			"type":        "Point",
+			"coordinates": []float64{Shop.Lon, Shop.Lat},
+		},
+		"category":     Services.ServiceName.String,
+		"sub_category": Services.SubServiceName.String,
+		"status":       false,
+	})
+
+	if errInsertMongo != nil {
+		fmt.Println(errInsertMongo, "Error to Insert mongo")
+	}
+
+	c.JSON(ResponseCreateShop{Message: "Create shop success", ShopID: IDLastShop, Status: 200})
 }

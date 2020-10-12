@@ -692,6 +692,38 @@ type ResponseResultSimple struct {
 	Result string `json:"result"`
 }
 
+//DataShop struct for information shop
+type DataShop struct {
+	ShopName         string   `json:"shop_name"`
+	Address          string   `json:"address"`
+	Phone            string   `json:"phone"`
+	Phone2           string   `json:"phone2"`
+	Description      string   `json:"description"`
+	CoverImage       string   `json:"cover_image"`
+	Logo             string   `json:"logo"`
+	AcceptCard       bool     `json:"accept_card"`
+	ListCards        []string `json:"list_cards"`
+	ShopSchedules    []string `json:"shop_schedules"`
+	Lat              float64  `json:"lat"`
+	Lon              float64  `json:"lon"`
+	ServiceTypeID    string   `json:"service_type_id"`
+	SubServiceTypeID string   `json:"sub_service_type_id"`
+	ListImages       []string `json:"list_images"`
+}
+
+//ServiceNames struct for services
+type ServiceNames struct {
+	SubServiceName sql.NullString `json:"sub_service_name"`
+	ServiceName    sql.NullString `json:"service_name"`
+}
+
+//ResponseCreateShop struct for response shop created
+type ResponseCreateShop struct {
+	Message string `json:"message"`
+	ShopID  int64  `json:"shop_id"`
+	Status  int    `json:"status"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`
