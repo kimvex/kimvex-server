@@ -42,7 +42,7 @@ func Shops() {
 	apiRouteImages.Use("/shop/cover", ValidateRoute)
 	apiRouteImages.Use("/shop/logo", ValidateRoute)
 	apiRouteImages.Use("/avatar", ValidateRoute)
-	// apiRouteShop.Use("/", ValidateRoute)
+	apiRouteShop.Use("/:shop_id/update", ValidateRoute)
 
 	apiRouteShop.Get("/:shop_id", ShopGet)
 	apiRouteShop.Get("/:shop_id/offers", ShopOffers)
@@ -70,6 +70,7 @@ func Shops() {
 	apiRouteImages.Post("/shop/logo", UploadLogo)
 	apiRouteImages.Post("/avatar", UploadAvatar)
 	apiRouteShop.Post("/", ValidateRoute, CreateShop)
+	apiRouteShop.Put("/:shop_id/update", UpdateShop)
 
 	apiRouteShop.Post("/offers", CreateOffer)
 	apiRouteShop.Put("/offers/:offer_id", UpdateOffer)
@@ -2240,4 +2241,184 @@ func CreateShop(c *fiber.Ctx) {
 	}
 
 	c.JSON(ResponseCreateShop{Message: "Create shop success", ShopID: IDLastShop, Status: 200})
+}
+
+//UpdateShop Hander for update shop
+func UpdateShop(c *fiber.Ctx) {
+	UserID := userIDF(c.Get("token"))
+	ShopID := c.Params("shop_id")
+
+	var Shop DataShopString
+	var Services ServiceNames
+	var ShopsMongo bson.D
+
+	if errorParse := c.BodyParser(&Shop); errorParse != nil {
+		fmt.Println("Error parsing data", errorParse)
+		c.JSON(ErrorResponse{MESSAGE: "Error al parsear información"})
+		c.Status(400)
+		return
+	}
+
+	queryUpdateValue := sq.Update("shop")
+
+	if len(Shop.ShopName) > 0 {
+		queryUpdateValue = queryUpdateValue.Set("shop_name", Shop.ShopName)
+		ShopsMongo = append(ShopsMongo, bson.E{"name", Shop.ShopName})
+	}
+
+	if len(Shop.Address) > 0 {
+		queryUpdateValue = queryUpdateValue.Set("address", Shop.Address)
+	}
+
+	if len(Shop.Phone) > 0 {
+		queryUpdateValue = queryUpdateValue.Set("phone", Shop.Phone)
+	}
+
+	if len(Shop.Phone2) > 0 {
+		queryUpdateValue = queryUpdateValue.Set("phone2", Shop.Phone2)
+	}
+
+	if len(Shop.Description) > 0 {
+		queryUpdateValue = queryUpdateValue.Set("description", Shop.Description)
+	}
+
+	if len(Shop.CoverImage) > 0 {
+		queryUpdateValue = queryUpdateValue.Set("cover_image", Shop.CoverImage)
+	}
+
+	queryUpdateValue = queryUpdateValue.Set("accept_card", Shop.AcceptCard)
+
+	if len(Shop.ListCards) > 0 {
+
+		ListCards := "["
+
+		for i := 0; i < len(Shop.ListCards); i++ {
+			if len(Shop.ListCards)-1 == i {
+				ListCards = fmt.Sprintf(`%s"%v"`, ListCards, Shop.ListCards[i])
+			} else {
+				ListCards = fmt.Sprintf(`%s"%v",`, ListCards, Shop.ListCards[i])
+			}
+		}
+
+		ListCards = fmt.Sprintf(`%s]`, ListCards)
+
+		queryUpdateValue = queryUpdateValue.Set("list_cards", ListCards)
+	}
+
+	if len(Shop.ServiceTypeID) > 0 && len(Shop.SubServiceTypeID) > 0 {
+		ErrorService := sq.Select(
+			"sub_service_name",
+			"service_name",
+		).
+			From("sub_service_type").
+			LeftJoin("service_type on sub_service_type.service_type_id = service_type.service_type_id").
+			Where("sub_service_type.sub_service_type_id = ? AND sub_service_type.service_type_id = ? ", Shop.SubServiceTypeID, Shop.ServiceTypeID).
+			RunWith(database).
+			QueryRow().
+			Scan(
+				&Services.SubServiceName,
+				&Services.ServiceName,
+			)
+
+		if ErrorService != nil {
+			fmt.Println("Error to get service names", ErrorService)
+		}
+
+		queryUpdateValue = queryUpdateValue.Set("service_type_id", Shop.ServiceTypeID)
+		queryUpdateValue = queryUpdateValue.Set("sub_service_type_id", Shop.SubServiceTypeID)
+
+		ShopsMongo = append(ShopsMongo, bson.E{"category", Services.ServiceName.String})
+		ShopsMongo = append(ShopsMongo, bson.E{"sub_category", Services.SubServiceName.String})
+	}
+
+	if len(Shop.Lat) > 0 && len(Shop.Lon) > 0 {
+		queryUpdateValue = queryUpdateValue.Set("lat", Shop.Lat)
+		queryUpdateValue = queryUpdateValue.Set("lon", Shop.Lon)
+
+		Lat, errLat := strconv.ParseFloat(Shop.Lat, 64)
+		if errLat != nil {
+			fmt.Println("Error to conver lat", errLat)
+		}
+
+		Lon, errLon := strconv.ParseFloat(Shop.Lon, 64)
+		if errLon != nil {
+			fmt.Println("Error to conver lon", errLon)
+		}
+
+		ShopsMongo = append(ShopsMongo, bson.E{"location", bson.M{
+			"type":        "Point",
+			"coordinates": []float64{Lon, Lat},
+		}})
+	}
+
+	if len(Shop.Logo) > 0 {
+		queryUpdateValue = queryUpdateValue.Set("logo", Shop.Logo)
+	}
+
+	_, ErrorUpdateShop := queryUpdateValue.
+		Where("user_id = ? AND shop_id = ?", UserID, ShopID).
+		RunWith(database).
+		Exec()
+
+	if ErrorUpdateShop != nil {
+		fmt.Println(ErrorUpdateShop, "Problem with update shop")
+		c.JSON(ErrorResponse{MESSAGE: "Problem with update shop"})
+		c.SendStatus(500)
+		return
+	}
+
+	for i := 0; i < len(Shop.ListImages); i++ {
+		_, errorInsertShop := sq.Insert("images_shop").
+			Columns(
+				"url_image",
+				"shop_id",
+			).
+			Values(
+				Shop.ListImages[i],
+				ShopID,
+			).
+			RunWith(database).
+			Exec()
+		if errorInsertShop != nil {
+			fmt.Println("Problem to insert url", errorInsertShop)
+		}
+	}
+
+	_, ErrorUpdateSchedules := sq.Update("shop_schedules").
+		Set("LUN", Shop.ShopSchedules[0]).
+		Set("MAR", Shop.ShopSchedules[1]).
+		Set("MIE", Shop.ShopSchedules[2]).
+		Set("JUE", Shop.ShopSchedules[3]).
+		Set("VIE", Shop.ShopSchedules[4]).
+		Set("SAB", Shop.ShopSchedules[5]).
+		Set("DOM", Shop.ShopSchedules[6]).
+		Where("shop_id = ?", ShopID).
+		RunWith(database).
+		Exec()
+
+	if ErrorUpdateSchedules != nil {
+		fmt.Println("Problem with update shop_schedules")
+	}
+
+	opts := options.Update().SetUpsert(true)
+	filter := bson.D{{"shop_id", ShopID}}
+	update := bson.D{
+		{"$set", ShopsMongo},
+	}
+
+	resultMongoShop, errOfferMongo := mongodb.Collection("shop").UpdateOne(context.TODO(), filter, update, opts)
+
+	if errOfferMongo != nil {
+		fmt.Println("promblem with update shop in mongodb")
+	}
+
+	if resultMongoShop.MatchedCount != 0 {
+		fmt.Println("matched and replaced an existing document")
+		return
+	}
+	if resultMongoShop.UpsertedCount != 0 {
+		fmt.Printf("inserted a new document with ID %v\n", resultMongoShop.UpsertedID)
+	}
+
+	c.JSON(ResponseStatusCode{Message: "Success update", StatusCode: 200})
 }

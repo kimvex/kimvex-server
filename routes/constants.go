@@ -711,6 +711,25 @@ type DataShop struct {
 	ListImages       []string `json:"list_images"`
 }
 
+//DataShopString struct for information shop
+type DataShopString struct {
+	ShopName         string   `json:"shop_name"`
+	Address          string   `json:"address"`
+	Phone            string   `json:"phone"`
+	Phone2           string   `json:"phone2"`
+	Description      string   `json:"description"`
+	CoverImage       string   `json:"cover_image"`
+	Logo             string   `json:"logo"`
+	AcceptCard       bool     `json:"accept_card"`
+	ListCards        []string `json:"list_cards"`
+	ShopSchedules    []string `json:"shop_schedules"`
+	Lat              string   `json:"lat"`
+	Lon              string   `json:"lon"`
+	ServiceTypeID    string   `json:"service_type_id"`
+	SubServiceTypeID string   `json:"sub_service_type_id"`
+	ListImages       []string `json:"list_images"`
+}
+
 //ServiceNames struct for services
 type ServiceNames struct {
 	SubServiceName sql.NullString `json:"sub_service_name"`
@@ -722,6 +741,12 @@ type ResponseCreateShop struct {
 	Message string `json:"message"`
 	ShopID  int64  `json:"shop_id"`
 	Status  int    `json:"status"`
+}
+
+//ResponseStatusCode struct from response
+type ResponseStatusCode struct {
+	Message    string `json:"message"`
+	StatusCode int    `json:"status_code"`
 }
 
 //ValidateExistUser struct
