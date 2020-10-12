@@ -749,6 +749,11 @@ type ResponseStatusCode struct {
 	StatusCode int    `json:"status_code"`
 }
 
+//DataDeleteImage struct for delete image
+type DataDeleteImage struct {
+	URLImage string `json:"url_image"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`

@@ -43,6 +43,7 @@ func Shops() {
 	apiRouteImages.Use("/shop/logo", ValidateRoute)
 	apiRouteImages.Use("/avatar", ValidateRoute)
 	apiRouteShop.Use("/:shop_id/update", ValidateRoute)
+	apiRouteBase.Use("/:shop_id/image", ValidateRoute)
 
 	apiRouteShop.Get("/:shop_id", ShopGet)
 	apiRouteShop.Get("/:shop_id/offers", ShopOffers)
@@ -71,6 +72,7 @@ func Shops() {
 	apiRouteImages.Post("/avatar", UploadAvatar)
 	apiRouteShop.Post("/", ValidateRoute, CreateShop)
 	apiRouteShop.Put("/:shop_id/update", UpdateShop)
+	apiRouteBase.Delete("/shops/:shop_id/image", DeleteImage)
 
 	apiRouteShop.Post("/offers", CreateOffer)
 	apiRouteShop.Put("/offers/:offer_id", UpdateOffer)
@@ -2072,7 +2074,7 @@ func UploadAvatar(c *fiber.Ctx) {
 	c.JSON(ResponseResultSimple{Result: image.URL})
 }
 
-//CreateShop Hanlder for create shop
+//CreateShop Handler for create shop
 func CreateShop(c *fiber.Ctx) {
 	UserID := userIDF(c.Get("token"))
 
@@ -2243,7 +2245,7 @@ func CreateShop(c *fiber.Ctx) {
 	c.JSON(ResponseCreateShop{Message: "Create shop success", ShopID: IDLastShop, Status: 200})
 }
 
-//UpdateShop Hander for update shop
+//UpdateShop Handler for update shop
 func UpdateShop(c *fiber.Ctx) {
 	UserID := userIDF(c.Get("token"))
 	ShopID := c.Params("shop_id")
@@ -2421,4 +2423,31 @@ func UpdateShop(c *fiber.Ctx) {
 	}
 
 	c.JSON(ResponseStatusCode{Message: "Success update", StatusCode: 200})
+}
+
+//DeleteImage Handler for delete image to shop
+func DeleteImage(c *fiber.Ctx) {
+	ShopID := c.Params("shop_id")
+
+	var DeleteImage DataDeleteImage
+
+	if errorParse := c.BodyParser(&DeleteImage); errorParse != nil {
+		fmt.Println("Error parsing data", errorParse)
+		c.JSON(ErrorResponse{MESSAGE: "Error al parsear información"})
+		c.Status(400)
+		return
+	}
+
+	_, ErrorDelete := sq.Delete("images_shop").
+		Where("url_image = ? AND shop_id = ?", DeleteImage.URLImage, ShopID).
+		RunWith(database).
+		Exec()
+
+	if ErrorDelete != nil {
+		fmt.Println("Error to delete image", ErrorDelete)
+		c.JSON(ErrorResponse{MESSAGE: "Error to delete image"})
+		c.Status(400)
+	}
+
+	c.JSON(SuccessResponse{MESSAGE: "Imagen eliminada"})
 }
