@@ -687,6 +687,11 @@ type ResponseDomain struct {
 	Domain bool `json:"domain"`
 }
 
+//ResponseResultSimple struct for response simple
+type ResponseResultSimple struct {
+	Result string `json:"result"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`

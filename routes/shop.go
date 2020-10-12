@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"../helper"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/gofiber/fiber"
 	"go.mongodb.org/mongo-driver/bson"
@@ -18,6 +20,7 @@ import (
 //Shops namespace
 func Shops() {
 	apiRouteShop := apiRoute.Group("/shop")
+	apiRouteImages := apiRoute.Group("/images")
 	apiRouteProfile := apiRoute.Group("/profile")
 	apiRouteBase := apiRoute.Group("/")
 
@@ -35,6 +38,7 @@ func Shops() {
 	apiRouteShop.Use("/:shop_id/update_page/:page_id", ValidateRoute)
 	apiRouteShop.Use("/:shop_id/active_page/:page_id", ValidateRoute)
 	apiRouteShop.Use("/:shop_id/deactivate_page/:page_id", ValidateRoute)
+	apiRouteImages.Use("/shop", ValidateRoute)
 
 	apiRouteShop.Get("/:shop_id", ShopGet)
 	apiRouteShop.Get("/:shop_id/offers", ShopOffers)
@@ -57,6 +61,7 @@ func Shops() {
 	apiRouteShop.Put("/:shop_id/update_page/:page_id", UpdatePage)
 	apiRouteShop.Put("/:shop_id/active_page/:page_id", ActivePage)
 	apiRouteShop.Put("/:shop_id/deactivate_page/:page_id", DeactivePage)
+	apiRouteImages.Post("/shop", UploadImages)
 
 	apiRouteShop.Post("/offers", CreateOffer)
 	apiRouteShop.Put("/offers/:offer_id", UpdateOffer)
@@ -2017,4 +2022,17 @@ func DeactivePage(c *fiber.Ctx) {
 	}
 
 	c.JSON(SuccessResponse{MESSAGE: "Actualizado"})
+}
+
+//UploadImages Handler for upload images
+func UploadImages(c *fiber.Ctx) {
+	file, err := c.FormFile("file")
+
+	if err != err {
+		fmt.Println(err)
+	}
+
+	image := helper.UploadImg(file)
+
+	c.JSON(ResponseResultSimple{Result: image.URL})
 }
