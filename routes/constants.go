@@ -100,6 +100,11 @@ type SQLCodeRef struct {
 	CodeReferenceID string `json:"code_reference_id"`
 }
 
+//ResponseValidate struct
+type ResponseValidate struct {
+	Validate SQLCodeRef `json:"validate"`
+}
+
 //RefferalsStruct struct
 type RefferalsStruct struct {
 	RefundID sql.NullString `json:"refund_id"`

@@ -18,13 +18,14 @@ import (
 //Users Namespace for endpoint of users
 func Users() {
 	apiRouteUser := apiRoute.Group("/user")
+	apiRouteCode := apiRoute.Group("/code")
 
 	//Validations token
 	apiRouteUser.Use("/profile", ValidateRoute)
 	apiRouteUser.Use("/update/profile", ValidateRoute)
 	apiRouteUser.Use("/restore_password", ValidateRoute)
-	apiRouteUser.Use("/code/auth", ValidateRoute)
-	apiRouteUser.Use("/code/auth", ValidateRoute)
+	apiRouteCode.Use("/auth", ValidateRoute)
+	// apiRouteUser.Use("/code/auth", ValidateRoute)
 	apiRouteUser.Use("/referrals", ValidateRoute)
 	apiRouteUser.Use("/my_code", ValidateRoute)
 	apiRouteUser.Use("/refferals_fail", ValidateRoute)
@@ -37,7 +38,7 @@ func Users() {
 	apiRouteUser.Put("/update/profile", UpdateProfileEnd)
 	apiRouteUser.Post("/logout", Logout)
 	apiRouteUser.Post("/restore_password", RestorePassword)
-	apiRouteUser.Get("/code/auth", CodeAuth)
+	apiRouteCode.Get("/auth", CodeAuth)
 	apiRouteUser.Get("/referrals", Referrals)
 	apiRouteUser.Get("/my_code", MyCodeHandler)
 	apiRouteUser.Get("/refferals_fail", ReferralsFail)
@@ -452,7 +453,7 @@ func CodeAuth(c *fiber.Ctx) {
 
 	fmt.Println(strings.ToUpper("47a6-8a54-4310-463b"), "-.-")
 
-	c.JSON(structCode)
+	c.JSON(ResponseValidate{Validate: structCode})
 }
 
 //Referrals Handler for endpoint
