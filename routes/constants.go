@@ -72,7 +72,7 @@ type UpdateProfile struct {
 	Phone       string `json:"phone"`
 	Gender      string `json:"gender"`
 	Address     string `json:"address"`
-	URLImage    string `json:"url_image"`
+	URLImage    string `json:"image_url"`
 }
 
 //BasicUser struct

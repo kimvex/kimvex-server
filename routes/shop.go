@@ -39,6 +39,9 @@ func Shops() {
 	apiRouteShop.Use("/:shop_id/active_page/:page_id", ValidateRoute)
 	apiRouteShop.Use("/:shop_id/deactivate_page/:page_id", ValidateRoute)
 	apiRouteImages.Use("/shop", ValidateRoute)
+	apiRouteImages.Use("/shop/cover", ValidateRoute)
+	apiRouteImages.Use("/shop/logo", ValidateRoute)
+	apiRouteImages.Use("/avatar", ValidateRoute)
 
 	apiRouteShop.Get("/:shop_id", ShopGet)
 	apiRouteShop.Get("/:shop_id/offers", ShopOffers)
@@ -61,7 +64,10 @@ func Shops() {
 	apiRouteShop.Put("/:shop_id/update_page/:page_id", UpdatePage)
 	apiRouteShop.Put("/:shop_id/active_page/:page_id", ActivePage)
 	apiRouteShop.Put("/:shop_id/deactivate_page/:page_id", DeactivePage)
-	apiRouteImages.Post("/shop", UploadImages)
+	apiRouteImages.Post("/shop", UploadImagesShop)
+	apiRouteImages.Post("/shop/cover", UploadImagesShop)
+	apiRouteImages.Post("/shop/logo", UploadLogo)
+	apiRouteImages.Post("/avatar", UploadAvatar)
 
 	apiRouteShop.Post("/offers", CreateOffer)
 	apiRouteShop.Put("/offers/:offer_id", UpdateOffer)
@@ -2024,15 +2030,41 @@ func DeactivePage(c *fiber.Ctx) {
 	c.JSON(SuccessResponse{MESSAGE: "Actualizado"})
 }
 
-//UploadImages Handler for upload images
-func UploadImages(c *fiber.Ctx) {
+//UploadImagesShop Handler for upload images
+func UploadImagesShop(c *fiber.Ctx) {
 	file, err := c.FormFile("file")
 
 	if err != err {
 		fmt.Println(err)
 	}
 
-	image := helper.UploadImg(file)
+	image := helper.UploadImg(file, "shop_images")
+
+	c.JSON(ResponseResultSimple{Result: image.URL})
+}
+
+//UploadLogo Handler for upload images
+func UploadLogo(c *fiber.Ctx) {
+	file, err := c.FormFile("file")
+
+	if err != err {
+		fmt.Println(err)
+	}
+
+	image := helper.UploadImg(file, "logo")
+
+	c.JSON(ResponseResultSimple{Result: image.URL})
+}
+
+//UploadAvatar Handler for upload images
+func UploadAvatar(c *fiber.Ctx) {
+	file, err := c.FormFile("file")
+
+	if err != err {
+		fmt.Println(err)
+	}
+
+	image := helper.UploadImg(file, "avatar")
 
 	c.JSON(ResponseResultSimple{Result: image.URL})
 }

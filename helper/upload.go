@@ -34,7 +34,7 @@ type IMG struct {
 }
 
 //UploadImg for upload images to cloudinary
-func UploadImg(file *multipart.FileHeader) IMG {
+func UploadImg(file *multipart.FileHeader, folder string) IMG {
 	var CloudinaryResponse IMG
 	sr, yr := file.Open()
 	fmt.Println(sr, yr)
@@ -45,7 +45,7 @@ func UploadImg(file *multipart.FileHeader) IMG {
 	writer := multipart.NewWriter(body)
 
 	_ = writer.WriteField("upload_preset", "wnnj4a59")
-	_ = writer.WriteField("folder", "shop_images")
+	_ = writer.WriteField("folder", folder)
 	part, _ := writer.CreateFormFile("file", file.Filename)
 	io.Copy(part, sr)
 	writer.Close()

@@ -349,7 +349,7 @@ func UpdateProfileEnd(c *fiber.Ctx) {
 	}
 
 	if len(profileSave.URLImage) > 0 {
-		queryUpdateValue = queryUpdateValue.Set("url_image", profileSave.URLImage)
+		queryUpdateValue = queryUpdateValue.Set("image", profileSave.URLImage)
 	}
 
 	_, ErrorUpdateProfile := queryUpdateValue.
