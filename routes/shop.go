@@ -893,7 +893,7 @@ func FindShops(c *fiber.Ctx) {
 
 	fmt.Println(IDs)
 
-	ShopsFromSQL, ErrorShops := sq.Select(
+	ShopSearch := sq.Select(
 		"shop_id",
 		"shop_name",
 		"address",
@@ -905,9 +905,15 @@ func FindShops(c *fiber.Ctx) {
 	).
 		From("shop").
 		LeftJoin("service_type on shop.service_type_id = service_type.service_type_id").
-		LeftJoin("sub_service_type on shop.sub_service_type_id = sub_service_type.sub_service_type_id").
-		Where(where).
-		RunWith(database).
+		LeftJoin("sub_service_type on shop.sub_service_type_id = sub_service_type.sub_service_type_id")
+
+	if len(IDs) > 0 {
+		ShopSearch = ShopSearch.Where(where)
+	} else {
+		ShopSearch = ShopSearch.Where("shop_id IS NULL")
+	}
+
+	ShopsFromSQL, ErrorShops := ShopSearch.RunWith(database).
 		Query()
 
 	if ErrorShops != nil {
@@ -955,10 +961,19 @@ func FindShops(c *fiber.Ctx) {
 		return ShopArrPointer[i].Distance < ShopArrPointer[j].Distance
 	})
 
+	var LastShop ResponsePointerLasts
+
+	if len(ShopArrPointer) > 0 {
+		LastShop.LastID = ShopArrPointer[len(ShopArrPointer)-1].ShopID
+		LastShop.Distance = ShopArrPointer[len(ShopArrPointer)-1].Distance
+	} else {
+		ShopArrPointer = []ShopFindPointer{}
+	}
+
 	c.JSON(ResponseFinalFindShops{
 		Shop:         ShopArrPointer,
-		LastShopID:   ShopArrPointer[len(ShopArrPointer)-1].ShopID,
-		LastDistance: ShopArrPointer[len(ShopArrPointer)-1].Distance,
+		LastShopID:   LastShop.LastID,
+		LastDistance: LastShop.Distance,
 	})
 }
 
@@ -1025,7 +1040,7 @@ func FindOffers(c *fiber.Ctx) {
 
 	Query.LastOfferID = c.Query("last_offer_id")
 
-	fmt.Println(Query.LastOfferID, "last")
+	LastIDS := strings.Split(Query.LastOfferID, ",")
 
 	Limit, _ := strconv.Atoi(Query.Limit)
 	MinDistance, _ := strconv.ParseFloat(Query.MinDistance, 64)
@@ -1057,7 +1072,7 @@ func FindOffers(c *fiber.Ctx) {
 			"$match": bson.M{
 				"active": true,
 				"offer_id": bson.M{
-					"$nin": []string{Query.LastOfferID},
+					"$nin": LastIDS,
 				},
 				"date_end": bson.M{
 					"$gt": TimeRemoveSpace,
@@ -1112,6 +1127,8 @@ func FindOffers(c *fiber.Ctx) {
 
 	if len(IDs) > 0 {
 		offersSQL = offersSQL.Where(where)
+	} else {
+		offersSQL = offersSQL.Where("offers_id IS NULL")
 	}
 
 	OffersFromSQL, ErrorOffers := offersSQL.
@@ -1165,10 +1182,18 @@ func FindOffers(c *fiber.Ctx) {
 		return OffersArrPointer[i].Distance < OffersArrPointer[j].Distance
 	})
 
+	var LastOffer ResponsePointerLasts
+	if len(OffersArrPointer) > 0 {
+		LastOffer.LastID = OffersArrPointer[len(OffersArrPointer)-1].OfferID
+		LastOffer.Distance = OffersArrPointer[len(OffersArrPointer)-1].Distance
+	} else {
+		OffersArrPointer = []OffersFindPointer{}
+	}
+
 	c.JSON(ResponseFinalFindOffers{
 		Offers:       OffersArrPointer,
-		LastOfferID:  OffersArrPointer[len(OffersArrPointer)-1].ShopID,
-		LastDistance: OffersArrPointer[len(OffersArrPointer)-1].Distance,
+		LastOfferID:  LastOffer.LastID,
+		LastDistance: LastOffer.Distance,
 	})
 }
 

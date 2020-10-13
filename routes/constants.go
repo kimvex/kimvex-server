@@ -759,6 +759,12 @@ type DataDeleteImage struct {
 	URLImage string `json:"url_image"`
 }
 
+//ResponsePointerLasts struct for conver to *
+type ResponsePointerLasts struct {
+	LastID   *string `json:"last_id"`
+	Distance float64 `json:"distance"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`
