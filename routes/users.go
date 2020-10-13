@@ -296,7 +296,7 @@ func UpdateProfileEnd(c *fiber.Ctx) {
 	}
 
 	if len(profileSave.Password) > 0 && len(profileSave.NewPassword) > 0 {
-		compare := bcrypt.CompareHashAndPassword([]byte(string(profileSave.Password)), []byte(baseUser.Password))
+		compare := bcrypt.CompareHashAndPassword([]byte(baseUser.Password), []byte(string(profileSave.Password)))
 
 		if compare != nil {
 			c.JSON(ErrorResponse{MESSAGE: "IncorrectPassword"})
@@ -636,7 +636,7 @@ func EarnedReferralsMonth(c *fiber.Ctx) {
 	var earnedSQL ResponseEarnedReferrals
 	var response ResponseEarnedReferralsPointer
 
-	loc, _ := time.LoadLocation("america/mexico_city")
+	loc, _ := time.LoadLocation("America/Mexico_City")
 	now := time.Now().In(loc)
 
 	y := now.Year()
