@@ -765,6 +765,36 @@ type ResponsePointerLasts struct {
 	Distance float64 `json:"distance"`
 }
 
+// FromSQLHallways list of hallways of shop
+type FromSQLHallways struct {
+	HallwaysID  sql.NullString `json:"hallways_id"`
+	Name        sql.NullString `json:"name"`
+	Description sql.NullString `json:"description"`
+}
+
+//SQLArticles list of articles of hallways
+type SQLArticles struct {
+	Name         sql.NullString `json:"name"`
+	Description  sql.NullString `json:"description"`
+	Price        sql.NullInt32  `json:"price"`
+	CountArticle sql.NullInt32  `json:"count_article"`
+}
+
+//ArticlesPointer struct for articles
+type ArticlesPointer struct {
+	Name         *string `json:"name"`
+	Description  *string `json:"description"`
+	Price        *int32  `json:"price"`
+	CountArticle *int32  `json:"count_article"`
+}
+
+//SQLHallwaysArticle struct for response
+type SQLHallwaysArticle struct {
+	Name        *string           `json:"name"`
+	Description *string           `json:"description"`
+	Articles    []ArticlesPointer `json:"articles"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`

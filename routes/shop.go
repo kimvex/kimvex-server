@@ -53,6 +53,7 @@ func Shops() {
 	apiRouteShop.Get("/:shop_id/page", Page)
 	apiRouteBase.Get("/find/shops/:lat/:lon", FindShops)
 	apiRouteBase.Get("/shops/offers/:lat/:lon", FindOffers)
+	apiRouteShop.Get("/:shop_id/hallways", HallwaysGet)
 
 	apiRouteBase.Get("/services", Services)
 	apiRouteBase.Get("/sub_service/:service_id", SubServices)
@@ -2475,4 +2476,90 @@ func DeleteImage(c *fiber.Ctx) {
 	}
 
 	c.JSON(SuccessResponse{MESSAGE: "Imagen eliminada"})
+}
+
+//HallwaysGet handler for get get Hallways
+func HallwaysGet(c *fiber.Ctx) {
+	ShopID := c.Params("shop_id")
+
+	var SQLHallways FromSQLHallways
+	var ArrayAllways []FromSQLHallways
+	var Article SQLArticles
+	var Apointer ArticlesPointer
+	var arrArticle []ArticlesPointer
+	var HallwaysCompose SQLHallwaysArticle
+	var HallwaysList []SQLHallwaysArticle
+
+	SQL, ErrorSQL := sq.Select(
+		"hallways_id",
+		"name",
+		"hallways.description",
+	).
+		From("hallways").
+		LeftJoin("shop on shop.shop_id=hallways.shop_id").
+		LeftJoin("shop_config on shop_config.shop_id=shop.shop_id").
+		Where("shop_id = ? and hallways.active = ? and active_hallways = ?", ShopID, 1, 1).
+		RunWith(database).
+		Query()
+
+	if ErrorSQL != nil {
+		fmt.Println(ErrorSQL, "Error to get hallways")
+		ErrorProfile := ErrorResponse{MESSAGE: "Error to get hallways"}
+		c.JSON(ErrorProfile)
+		c.Status(400)
+		return
+	}
+
+	for SQL.Next() {
+		_ = SQL.Scan(
+			&SQLHallways.HallwaysID,
+			&SQLHallways.Name,
+			&SQLHallways.Description,
+		)
+
+		ArrayAllways = append(ArrayAllways, SQLHallways)
+	}
+
+	for i := 0; i < len(ArrayAllways); i++ {
+		HallwaysID := ArrayAllways[i].HallwaysID.String
+		ArticlesFSQL, ErrorArticle := sq.Select(
+			"name",
+			"description",
+			"price",
+			"count_article",
+		).
+			From("articles").
+			Where("hallways_id = ? and active = ?", HallwaysID, 1).
+			RunWith(database).
+			RunWith(database).
+			Query()
+
+		if ErrorArticle != nil {
+			fmt.Println(ErrorArticle, "Error to get article")
+		}
+
+		for ArticlesFSQL.Next() {
+			_ = ArticlesFSQL.Scan(
+				&Article.Name,
+				&Article.Description,
+				&Article.Price,
+				&Article.CountArticle,
+			)
+
+			Apointer.Name = &Article.Name.String
+			Apointer.Description = &Article.Description.String
+			Apointer.Price = &Article.Price.Int32
+			Apointer.CountArticle = &Article.CountArticle.Int32
+
+			arrArticle = append(arrArticle, Apointer)
+		}
+
+		HallwaysCompose.Name = &ArrayAllways[i].Name.String
+		HallwaysCompose.Description = &ArrayAllways[i].Description.String
+		HallwaysCompose.Articles = arrArticle
+
+		HallwaysList = append(HallwaysList, HallwaysCompose)
+	}
+
+	c.JSON(HallwaysList)
 }
