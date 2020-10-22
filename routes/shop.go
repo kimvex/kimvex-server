@@ -2548,6 +2548,7 @@ func HallwaysGet(c *fiber.Ctx) {
 				&Article.CountArticle,
 			)
 
+			Apointer.ArticleID = &Article.ArticleID.String
 			Apointer.Name = &Article.Name.String
 			Apointer.Description = &Article.Description.String
 			Apointer.Price = &Article.Price.Int32
@@ -2556,6 +2557,7 @@ func HallwaysGet(c *fiber.Ctx) {
 			arrArticle = append(arrArticle, Apointer)
 		}
 
+		HallwaysCompose.HallwaysID = &ArrayAllways[i].HallwaysID.String
 		HallwaysCompose.Name = &ArrayAllways[i].Name.String
 		HallwaysCompose.Description = &ArrayAllways[i].Description.String
 

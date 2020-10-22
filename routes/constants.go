@@ -774,6 +774,7 @@ type FromSQLHallways struct {
 
 //SQLArticles list of articles of hallways
 type SQLArticles struct {
+	ArticleID    sql.NullString `json:"article_id"`
 	Name         sql.NullString `json:"name"`
 	Description  sql.NullString `json:"description"`
 	Price        sql.NullInt32  `json:"price"`
@@ -782,6 +783,7 @@ type SQLArticles struct {
 
 //ArticlesPointer struct for articles
 type ArticlesPointer struct {
+	ArticleID    *string `json:"article_id"`
 	Name         *string `json:"name"`
 	Description  *string `json:"description"`
 	Price        *int32  `json:"price"`
@@ -790,6 +792,7 @@ type ArticlesPointer struct {
 
 //SQLHallwaysArticle struct for response
 type SQLHallwaysArticle struct {
+	HallwaysID  *string           `json:"hallways_id"`
 	Name        *string           `json:"name"`
 	Description *string           `json:"description"`
 	Articles    []ArticlesPointer `json:"articles"`
