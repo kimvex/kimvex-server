@@ -2498,7 +2498,7 @@ func HallwaysGet(c *fiber.Ctx) {
 		From("hallways").
 		LeftJoin("shop on shop.shop_id=hallways.shop_id").
 		LeftJoin("shop_config on shop_config.shop_id=shop.shop_id").
-		Where("shop_id = ? and hallways.active = ? and active_hallways = ?", ShopID, 1, 1).
+		Where("shop.shop_id = ? and hallways.active = ? and active_hallways = ?", ShopID, 1, 1).
 		RunWith(database).
 		Query()
 
@@ -2561,5 +2561,9 @@ func HallwaysGet(c *fiber.Ctx) {
 		HallwaysList = append(HallwaysList, HallwaysCompose)
 	}
 
-	c.JSON(HallwaysList)
+	if len(HallwaysList) < 1 {
+		HallwaysList = []SQLHallwaysArticle{}
+	}
+
+	c.JSON(HallwaysResponse{Hallways: HallwaysList})
 }

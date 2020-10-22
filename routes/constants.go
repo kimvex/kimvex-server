@@ -795,6 +795,11 @@ type SQLHallwaysArticle struct {
 	Articles    []ArticlesPointer `json:"articles"`
 }
 
+//HallwaysResponse struct for response
+type HallwaysResponse struct {
+	Hallways []SQLHallwaysArticle `json:"hallways"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`
