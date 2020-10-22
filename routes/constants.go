@@ -815,6 +815,15 @@ type HallwaysUpdate struct {
 	Description string `json:"description"`
 }
 
+//ArticlePostStruct create article
+type ArticlePostStruct struct {
+	Name         string `json:"name"`
+	Description  string `json:"description"`
+	Price        int32  `json:"price"`
+	CountArticle int32  `json:"count_article"`
+	URL          string `json:"image_url"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`

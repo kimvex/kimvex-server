@@ -46,6 +46,7 @@ func Shops() {
 	apiRouteBase.Use("/:shop_id/image", ValidateRoute)
 	apiRouteShop.Use("/:shop_id/add_hallways", ValidateRoute)
 	apiRouteShop.Use("/:shop_id/:hallways_id/update_hallways", ValidateRoute)
+	apiRouteShop.Use("/:shop_id/:hallways_id/article", ValidateRoute)
 
 	apiRouteShop.Get("/:shop_id", ShopGet)
 	apiRouteShop.Get("/:shop_id/offers", ShopOffers)
@@ -57,6 +58,7 @@ func Shops() {
 	apiRouteBase.Get("/shops/offers/:lat/:lon", FindOffers)
 	apiRouteShop.Get("/:shop_id/hallways", HallwaysGet)
 	apiRouteShop.Put("/:shop_id/:hallways_id/update_hallways", HallwaysPut)
+	apiRouteShop.Post("/:shop_id/:hallways_id/article", ArticlePost)
 
 	apiRouteBase.Get("/services", Services)
 	apiRouteBase.Get("/sub_service/:service_id", SubServices)
@@ -2527,6 +2529,7 @@ func HallwaysGet(c *fiber.Ctx) {
 	for i := 0; i < len(ArrayAllways); i++ {
 		HallwaysID := ArrayAllways[i].HallwaysID.String
 		ArticlesFSQL, ErrorArticle := sq.Select(
+			"article_id",
 			"name",
 			"description",
 			"price",
@@ -2544,6 +2547,7 @@ func HallwaysGet(c *fiber.Ctx) {
 
 		for ArticlesFSQL.Next() {
 			_ = ArticlesFSQL.Scan(
+				&Article.ArticleID,
 				&Article.Name,
 				&Article.Description,
 				&Article.Price,
@@ -2703,5 +2707,90 @@ func HallwaysPut(c *fiber.Ctx) {
 	}
 
 	c.JSON(SuccessResponse{MESSAGE: "Actualizado"})
+}
+
+//ArticlePost handler for Article
+func ArticlePost(c *fiber.Ctx) {
+	ShopID := c.Params("shop_id")
+	HallwaysID := c.Params("hallways_id")
+	UserID := userIDF(c.Get("token"))
+
+	var Article ArticlePostStruct
+
+	if errorParse := c.BodyParser(&Article); errorParse != nil {
+		fmt.Println("Error parsing data", errorParse)
+		c.JSON(ErrorResponse{MESSAGE: "Error al parsear información"})
+		c.Status(400)
+		return
+	}
+
+	var IsOwner IsOwnerShop
+
+	ErrorOwner := sq.Select(
+		"shop_id",
+	).
+		From("shop").
+		Where(
+			"user_id = ? AND shop_id = ?",
+			UserID,
+			ShopID,
+		).
+		RunWith(database).
+		QueryRow().
+		Scan(
+			&IsOwner.ShopID,
+		)
+
+	if ErrorOwner != nil {
+		fmt.Println("Not is owner or active shop", ErrorOwner)
+		c.JSON(ErrorResponse{MESSAGE: "Not is owner or active shop"})
+		c.SendStatus(400)
+		return
+	}
+
+	id, errorInsert := sq.Insert("articles").
+		Columns(
+			"hallways_id",
+			"name",
+			"description",
+			"price",
+			"count_article",
+		).
+		Values(
+			HallwaysID,
+			Article.Name,
+			Article.Description,
+			Article.Price,
+			Article.CountArticle,
+		).
+		RunWith(database).
+		Exec()
+
+	if errorInsert != nil {
+		fmt.Println("Error to save article", errorInsert)
+	}
+
+	IDLast, _ := id.LastInsertId()
+	IDS := strconv.FormatInt(IDLast, 10)
+
+	if len(Article.URL) > 0 {
+		_, errorInsert := sq.Insert("article_images").
+			Columns(
+				"article_id",
+				"url",
+			).
+			Values(
+				IDS,
+				Article.URL,
+			).
+			RunWith(database).
+			Exec()
+
+		if errorInsert != nil {
+			fmt.Println("Error to save article image", errorInsert)
+		}
+	}
+
+	c.JSON(SuccessResponse{MESSAGE: IDS})
 }
 
