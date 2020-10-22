@@ -45,6 +45,7 @@ func Shops() {
 	apiRouteShop.Use("/:shop_id/update", ValidateRoute)
 	apiRouteBase.Use("/:shop_id/image", ValidateRoute)
 	apiRouteShop.Use("/:shop_id/add_hallways", ValidateRoute)
+	apiRouteShop.Use("/:shop_id/:hallways_id/update_hallways", ValidateRoute)
 
 	apiRouteShop.Get("/:shop_id", ShopGet)
 	apiRouteShop.Get("/:shop_id/offers", ShopOffers)
@@ -55,6 +56,7 @@ func Shops() {
 	apiRouteBase.Get("/find/shops/:lat/:lon", FindShops)
 	apiRouteBase.Get("/shops/offers/:lat/:lon", FindOffers)
 	apiRouteShop.Get("/:shop_id/hallways", HallwaysGet)
+	apiRouteShop.Put("/:shop_id/:hallways_id/update_hallways", HallwaysPut)
 
 	apiRouteBase.Get("/services", Services)
 	apiRouteBase.Get("/sub_service/:service_id", SubServices)
@@ -2637,5 +2639,69 @@ func HallwaysPost(c *fiber.Ctx) {
 	IDS := strconv.FormatInt(IDLast, 10)
 
 	c.JSON(SuccessResponse{MESSAGE: IDS})
+}
+
+//HallwaysPut handler for put Hallways
+func HallwaysPut(c *fiber.Ctx) {
+	ShopID := c.Params("shop_id")
+	HallwaysID := c.Params("hallways_id")
+	UserID := userIDF(c.Get("token"))
+
+	var Data HallwaysUpdate
+
+	if errorParse := c.BodyParser(&Data); errorParse != nil {
+		fmt.Println("Error parsing data", errorParse)
+		c.JSON(ErrorResponse{MESSAGE: "Error al parsear información"})
+		c.Status(400)
+		return
+	}
+
+	var IsOwner IsOwnerShop
+
+	ErrorOwner := sq.Select(
+		"shop_id",
+	).
+		From("shop").
+		Where(
+			"user_id = ? AND shop_id = ?",
+			UserID,
+			ShopID,
+		).
+		RunWith(database).
+		QueryRow().
+		Scan(
+			&IsOwner.ShopID,
+		)
+
+	if ErrorOwner != nil {
+		fmt.Println("Not is owner or active shop", ErrorOwner)
+		c.JSON(ErrorResponse{MESSAGE: "Not is owner or active shop"})
+		c.SendStatus(400)
+		return
+	}
+
+	UpdateHallwaysSQL := sq.Update("hallways")
+
+	if len(Data.Name) > 0 {
+		UpdateHallwaysSQL = UpdateHallwaysSQL.Set("name", Data.Name)
+	}
+
+	if len(Data.Description) > 0 {
+		UpdateHallwaysSQL = UpdateHallwaysSQL.Set("description", Data.Description)
+	}
+
+	_, ErrorUpdatePage := UpdateHallwaysSQL.
+		Where("shop_id = ? and hallways_id = ?", ShopID, HallwaysID).
+		RunWith(database).
+		Exec()
+
+	if ErrorUpdatePage != nil {
+		fmt.Println(ErrorUpdatePage, "Problem with update information hallways")
+		c.JSON(ErrorResponse{MESSAGE: "Problem with update information hallways"})
+		c.SendStatus(500)
+		return
+	}
+
+	c.JSON(SuccessResponse{MESSAGE: "Actualizado"})
 }
 

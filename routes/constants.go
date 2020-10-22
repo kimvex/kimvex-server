@@ -809,6 +809,12 @@ type HallwaysPostStruct struct {
 	Description string `json:"description"`
 }
 
+//HallwaysUpdate update structure
+type HallwaysUpdate struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`
