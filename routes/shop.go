@@ -44,6 +44,7 @@ func Shops() {
 	apiRouteImages.Use("/avatar", ValidateRoute)
 	apiRouteShop.Use("/:shop_id/update", ValidateRoute)
 	apiRouteBase.Use("/:shop_id/image", ValidateRoute)
+	apiRouteShop.Use("/:shop_id/add_hallways", ValidateRoute)
 
 	apiRouteShop.Get("/:shop_id", ShopGet)
 	apiRouteShop.Get("/:shop_id/offers", ShopOffers)
@@ -74,6 +75,7 @@ func Shops() {
 	apiRouteShop.Post("/", ValidateRoute, CreateShop)
 	apiRouteShop.Put("/:shop_id/update", UpdateShop)
 	apiRouteBase.Delete("/shops/:shop_id/image", DeleteImage)
+	apiRouteShop.Post("/:shop_id/add_hallways", HallwaysPost)
 
 	apiRouteShop.Post("/offers", CreateOffer)
 	apiRouteShop.Put("/offers/:offer_id", UpdateOffer)
@@ -2556,7 +2558,12 @@ func HallwaysGet(c *fiber.Ctx) {
 
 		HallwaysCompose.Name = &ArrayAllways[i].Name.String
 		HallwaysCompose.Description = &ArrayAllways[i].Description.String
-		HallwaysCompose.Articles = arrArticle
+
+		if len(arrArticle) > 0 {
+			HallwaysCompose.Articles = arrArticle
+		} else {
+			HallwaysCompose.Articles = []ArticlesPointer{}
+		}
 
 		HallwaysList = append(HallwaysList, HallwaysCompose)
 	}
@@ -2567,3 +2574,66 @@ func HallwaysGet(c *fiber.Ctx) {
 
 	c.JSON(HallwaysResponse{Hallways: HallwaysList})
 }
+
+//HallwaysPost handler for post Hallways
+func HallwaysPost(c *fiber.Ctx) {
+	ShopID := c.Params("shop_id")
+	UserID := userIDF(c.Get("token"))
+
+	var Data HallwaysPostStruct
+
+	if errorParse := c.BodyParser(&Data); errorParse != nil {
+		fmt.Println("Error parsing data", errorParse)
+		c.JSON(ErrorResponse{MESSAGE: "Error al parsear información"})
+		c.Status(400)
+		return
+	}
+
+	var IsOwner IsOwnerShop
+
+	ErrorOwner := sq.Select(
+		"shop_id",
+	).
+		From("shop").
+		Where(
+			"user_id = ? AND shop_id = ? AND status = true",
+			UserID,
+			ShopID,
+		).
+		RunWith(database).
+		QueryRow().
+		Scan(
+			&IsOwner.ShopID,
+		)
+
+	if ErrorOwner != nil {
+		fmt.Println("Not is owner or active shop", ErrorOwner)
+		c.JSON(ErrorResponse{MESSAGE: "Not is owner or active shop"})
+		c.SendStatus(400)
+		return
+	}
+
+	id, errorInsert := sq.Insert("hallways").
+		Columns(
+			"shop_id",
+			"name",
+			"description",
+		).
+		Values(
+			ShopID,
+			Data.Name,
+			Data.Description,
+		).
+		RunWith(database).
+		Exec()
+
+	if errorInsert != nil {
+		fmt.Println("Error to save hallways", errorInsert)
+	}
+
+	IDLast, _ := id.LastInsertId()
+	IDS := strconv.FormatInt(IDLast, 10)
+
+	c.JSON(SuccessResponse{MESSAGE: IDS})
+}
+

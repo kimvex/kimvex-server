@@ -800,6 +800,12 @@ type HallwaysResponse struct {
 	Hallways []SQLHallwaysArticle `json:"hallways"`
 }
 
+//HallwaysPostStruct struct for insert
+type HallwaysPostStruct struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
 //ValidateExistUser struct
 type ValidateExistUser struct {
 	Email string `json:"email"`
