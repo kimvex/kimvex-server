@@ -47,6 +47,7 @@ func Shops() {
 	apiRouteShop.Use("/:shop_id/add_hallways", ValidateRoute)
 	apiRouteShop.Use("/:shop_id/:hallways_id/update_hallways", ValidateRoute)
 	apiRouteShop.Use("/:shop_id/:hallways_id/article", ValidateRoute)
+	apiRouteShop.Use("/:shop_id/:hallways_id/:article_id/update", ValidateRoute)
 
 	apiRouteShop.Get("/:shop_id", ShopGet)
 	apiRouteShop.Get("/:shop_id/offers", ShopOffers)
@@ -59,6 +60,7 @@ func Shops() {
 	apiRouteShop.Get("/:shop_id/hallways", HallwaysGet)
 	apiRouteShop.Put("/:shop_id/:hallways_id/update_hallways", HallwaysPut)
 	apiRouteShop.Post("/:shop_id/:hallways_id/article", ArticlePost)
+	apiRouteShop.Put("/:shop_id/:hallways_id/:article_id/update", ArticlePut)
 
 	apiRouteBase.Get("/services", Services)
 	apiRouteBase.Get("/sub_service/:service_id", SubServices)
@@ -2792,5 +2794,91 @@ func ArticlePost(c *fiber.Ctx) {
 	}
 
 	c.JSON(SuccessResponse{MESSAGE: IDS})
+}
+
+//ArticlePut handler for update Article
+func ArticlePut(c *fiber.Ctx) {
+	ShopID := c.Params("shop_id")
+	HallwaysID := c.Params("hallways_id")
+	ArticleID := c.Params("article_id")
+	UserID := userIDF(c.Get("token"))
+
+	var Article ArticlePostStruct
+
+	if errorParse := c.BodyParser(&Article); errorParse != nil {
+		fmt.Println("Error parsing data", errorParse)
+		c.JSON(ErrorResponse{MESSAGE: "Error al parsear información"})
+		c.Status(400)
+		return
+	}
+
+	var IsOwner IsOwnerShop
+
+	ErrorOwner := sq.Select(
+		"shop_id",
+	).
+		From("shop").
+		Where(
+			"user_id = ? AND shop_id = ?",
+			UserID,
+			ShopID,
+		).
+		RunWith(database).
+		QueryRow().
+		Scan(
+			&IsOwner.ShopID,
+		)
+
+	if ErrorOwner != nil {
+		fmt.Println("Not is owner or active shop", ErrorOwner)
+		c.JSON(ErrorResponse{MESSAGE: "Not is owner or active shop"})
+		c.SendStatus(400)
+		return
+	}
+
+	UpdateArticleSQL := sq.Update("articles")
+
+	if len(Article.Name) > 0 {
+		UpdateArticleSQL = UpdateArticleSQL.Set("name", Article.Name)
+	}
+
+	if len(Article.Description) > 0 {
+		UpdateArticleSQL = UpdateArticleSQL.Set("description", Article.Description)
+	}
+
+	if &Article.Price != nil {
+		UpdateArticleSQL = UpdateArticleSQL.Set("price", Article.Price)
+	}
+
+	if &Article.CountArticle != nil {
+		UpdateArticleSQL = UpdateArticleSQL.Set("count_article", Article.CountArticle)
+	}
+
+	if len(Article.URL) > 0 {
+		_, ErrorUpdateImage := sq.Update("article_images").
+			Set("url", Article.URL).
+			Where("article_id = ?", ArticleID).
+			RunWith(database).
+			Exec()
+
+		if ErrorUpdateImage != nil {
+			fmt.Println("Problem with update image for article", ErrorUpdateImage)
+		}
+	}
+
+	_, ErrorUpdateArticle := UpdateArticleSQL.
+		Where("article_id = ? and hallways_id = ?", ArticleID, HallwaysID).
+		RunWith(database).
+		Exec()
+
+	if ErrorUpdateArticle != nil {
+		fmt.Println("Problem with update article", ErrorUpdateArticle)
+		c.JSON(ErrorResponse{MESSAGE: "Problem with update article"})
+		c.SendStatus(400)
+		return
+	}
+
+	c.JSON(SuccessResponse{MESSAGE: "Update aricle"})
+
 }
 
