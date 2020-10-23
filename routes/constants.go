@@ -779,6 +779,7 @@ type SQLArticles struct {
 	Description  sql.NullString `json:"description"`
 	Price        sql.NullInt32  `json:"price"`
 	CountArticle sql.NullInt32  `json:"count_article"`
+	URL          sql.NullString `json:"url"`
 }
 
 //ArticlesPointer struct for articles
@@ -788,6 +789,7 @@ type ArticlesPointer struct {
 	Description  *string `json:"description"`
 	Price        *int32  `json:"price"`
 	CountArticle *int32  `json:"count_article"`
+	URL          *string `json:"url"`
 }
 
 //SQLHallwaysArticle struct for response

@@ -2531,13 +2531,15 @@ func HallwaysGet(c *fiber.Ctx) {
 	for i := 0; i < len(ArrayAllways); i++ {
 		HallwaysID := ArrayAllways[i].HallwaysID.String
 		ArticlesFSQL, ErrorArticle := sq.Select(
-			"article_id",
+			"articles.article_id",
 			"name",
 			"description",
 			"price",
 			"count_article",
+			"url",
 		).
 			From("articles").
+			LeftJoin("article_images on article_images.article_id = articles.article_id").
 			Where("hallways_id = ? and active = ?", HallwaysID, 1).
 			RunWith(database).
 			RunWith(database).
@@ -2554,6 +2556,7 @@ func HallwaysGet(c *fiber.Ctx) {
 				&Article.Description,
 				&Article.Price,
 				&Article.CountArticle,
+				&Article.URL,
 			)
 
 			Apointer.ArticleID = &Article.ArticleID.String
@@ -2561,6 +2564,7 @@ func HallwaysGet(c *fiber.Ctx) {
 			Apointer.Description = &Article.Description.String
 			Apointer.Price = &Article.Price.Int32
 			Apointer.CountArticle = &Article.CountArticle.Int32
+			Apointer.URL = &Article.URL.String
 
 			arrArticle = append(arrArticle, Apointer)
 		}
